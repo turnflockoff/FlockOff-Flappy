@@ -1,0 +1,22 @@
+{
+  "name": "flockoff-flappy",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "FLOCKOFF FLAPPY - a retro 16-bit arcade game about a paranoid dove in disguise dodging FLOUK surveillance cameras.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "cap:sync": "npm run build && cap sync",
+    "cap:android": "npm run build && cap sync android && cap open android",
+    "cap:ios": "npm run build && cap sync ios && cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^6.1.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.1.2",
+    "vite": "^5.4.8"
+  }
+}
