@@ -71,7 +71,7 @@ export class Game {
     this.coins = [];
     this.drones = [];
     this.portal = null;
-    this.spawnDist = 120;
+    this.spawnDist = 60;
     this.sinceDrone = 0;
     this.reviveUsed = false;
     this.invuln = 0;
@@ -136,6 +136,16 @@ export class Game {
 
     const inp = this.input;
     if (inp.tapped || inp.flapped) this.audio.unlock();
+
+    // global mute hotkey
+    if (inp.pressed('KeyM')) {
+      const s = this.save.settings;
+      const muted = !s.music && !s.sfx;
+      s.music = s.sfx = muted;
+      this.audio.applySettings();
+      this.persist();
+      this.toasts.push({ text: muted ? 'SOUND ON' : 'MUTED', sub: 'AUDIO', t: 1.2 });
+    }
 
     // keyboard menu navigation
     if (this.buttons.length && this.state !== 'play') {
@@ -537,7 +547,6 @@ export class Game {
         if (this.score > this.save.highScore) this.save.highScore = this.score;
         this.checkAchievements();
         this.persist();
-        setTimeout(() => {}, 0);
         this.goto('victory');
         this.creditY = 150;
       }

@@ -135,8 +135,9 @@ export class Obstacle {
       // bottom: pole + head
       { x: px, y: this.botStart + head.height - 6, w: this.poleW, h: GROUND_Y - this.botStart },
       { x: this.x - head.width / 2 + 2, y: this.botStart, w: head.width - 6, h: head.height - 2 },
-      // top: pole + head (flipped)
-      { x: px, y: 0, w: this.poleW, h: this.topEnd - head.height + 6 },
+      // top: pole + head (flipped); pole height clamps to 0 when the gap
+      // sits high enough that the head alone reaches the ceiling
+      { x: px, y: 0, w: this.poleW, h: Math.max(0, this.topEnd - head.height + 6) },
       { x: this.x - head.width / 2 + 2, y: this.topEnd - head.height + 2, w: head.width - 6, h: head.height - 2 },
     ];
   }
