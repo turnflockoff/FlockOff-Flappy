@@ -81,6 +81,9 @@ export class Game {
     this.endingPhase = 0;
     this.creditY = H + 10;
     this.runStats = { flaps: 0, coins: 0, drones: 0, startX: this.world.x };
+    this.floaters = [];
+    this.bestBeaten = false;
+    this.scorePop = 0;
     this.player.reset();
   }
 
@@ -265,6 +268,15 @@ export class Game {
     p.update(dt, this.particles, this.trailColors());
     this.particles.update(dt);
 
+    this.scorePop = Math.max(0, this.scorePop - dt);
+    for (let i = this.floaters.length - 1; i >= 0; i--) {
+      const f = this.floaters[i];
+      f.t -= dt;
+      f.x -= cfg.speed * dt * 0.6;
+      f.y -= 16 * dt;
+      if (f.t <= 0) this.floaters.splice(i, 1);
+    }
+
     if (p.dead) {
       this.deathT += dt;
       if (p.y > GROUND_Y - 4 || this.deathT > 1.6) this.finishDeath();
@@ -300,6 +312,13 @@ export class Game {
         this.score++;
         this.save.stats.camerasPassed++;
         this.audio.flash();
+        this.scorePop = 0.3;
+        this.floaters.push({ x: o.x, y: o.gapY, text: '+1', color: '#ffffff', t: 0.8 });
+        if (!this.bestBeaten && this.save.highScore > 0 && this.score > this.save.highScore) {
+          this.bestBeaten = true;
+          this.toasts.push({ text: 'NEW BEST!', sub: 'KEEP FLYING', t: 2.5 });
+          this.audio.achievement();
+        }
         this.onScoreChanged();
       }
       if (o.x < -40) this.obstacles.splice(i, 1);
@@ -322,6 +341,7 @@ export class Game {
         this.save.stats.coinsCollected++;
         this.audio.coin();
         this.particles.spark(c.x, c.y);
+        this.floaters.push({ x: c.x, y: c.y - 4, text: '+1', color: '#ffd040', t: 0.6 });
         this.checkAchievements();
       } else if (c.x < -10) this.coins.splice(i, 1);
     }
@@ -590,6 +610,11 @@ export class Game {
       if (this.portal) this.portal.draw(ctx);
       for (const d of this.drones) d.draw(ctx, this.time);
       this.particles.draw(ctx);
+      for (const f of this.floaters) {
+        ctx.globalAlpha = Math.min(1, f.t * 2.5);
+        drawText(ctx, f.text, f.x, f.y, f.color, 1, 'center');
+        ctx.globalAlpha = 1;
+      }
       if (!(this.state === 'gameover' && this.stateT > 0.5)) {
         const blink = this.invuln > 0 && Math.sin(this.time * 30) > 0;
         if (!blink) this.player.draw(ctx, this.disguiseCanvas());
@@ -741,7 +766,9 @@ export class Game {
 
   drawHUD(ctx) {
     if (this.state === 'play' || this.state === 'pause' || this.state === 'cutscene') {
-      drawTextShadow(ctx, this.score, W / 2, 8, '#ffffff', '#20242e', 2, 'center');
+      const popScale = this.scorePop > 0.15 ? 3 : 2;
+      const popColor = this.scorePop > 0 ? UI.accent : '#ffffff';
+      drawTextShadow(ctx, this.score, W / 2, 8, popColor, '#20242e', popScale, 'center');
       drawText(ctx, `$ ${this.runCoins}`, 8, 8, UI.accent, 1);
       // pause icon
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
@@ -786,8 +813,17 @@ export class Game {
     }
     drawText(ctx, `$ ${this.runCoins} COLLECTED`, W / 2, 86, UI.accent, 1, 'center');
     // medal
-    const medal = this.score >= 40 ? 'PLATINUM' : this.score >= 25 ? 'GOLD' : this.score >= 10 ? 'SILVER' : this.score >= 3 ? 'BRONZE' : null;
-    if (medal) drawText(ctx, `MEDAL: ${medal}`, W / 2, 98, UI.good, 1, 'center');
+    const medal = this.score >= 40 ? ['PLATINUM', '#d8e4f0'] : this.score >= 25 ? ['GOLD', '#ffd040'] : this.score >= 10 ? ['SILVER', '#c0c8d8'] : this.score >= 3 ? ['BRONZE', '#c88848'] : null;
+    if (medal) {
+      const mx = W / 2 - textWidth(`MEDAL: ${medal[0]}`) / 2 - 10;
+      ctx.fillStyle = medal[1];
+      ctx.beginPath();
+      ctx.arc(mx, 100, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#20242e';
+      ctx.stroke();
+      drawText(ctx, `MEDAL: ${medal[0]}`, W / 2 + 3, 98, medal[1], 1, 'center');
+    }
     if (this.button(ctx, 'retry', 80, 112, 76, 16, 'RETRY')) this.startRun();
     if (this.button(ctx, 'menu', 164, 112, 76, 16, 'MENU')) {
       this.audio.playSong('main');
