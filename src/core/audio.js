@@ -257,6 +257,12 @@ export class AudioSys {
     this._tone('square', 1319, t + 0.14, 0.18, 0.08);
   }
 
+  levelUp() {
+    if (!this._ok()) return;
+    const t = this._now();
+    [523, 659, 784, 1047].forEach((f, i) => this._tone('square', f, t + i * 0.07, 0.12, 0.07));
+  }
+
   achievement() {
     if (!this._ok()) return;
     const t = this._now();

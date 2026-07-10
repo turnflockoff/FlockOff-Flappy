@@ -395,6 +395,7 @@ export class Game {
     this.blendT = 0;
     this.level = lvl;
     this.levelBanner = 2.5;
+    this.audio.levelUp();
     this.audio.playSong(lvl === 2 ? 'danger' : 'main');
   }
 
@@ -402,7 +403,15 @@ export class Game {
     const gapH = cfg.gap;
     const margin = 34;
     const gapY = margin + gapH / 2 + Math.random() * (GROUND_Y - margin * 2 - gapH);
-    const o = new Obstacle(W + 40, gapY, gapH, this.spr);
+    // city+ levels: some camera rigs slide up and down on their poles
+    let drift = 0;
+    const driftChance = this.level === 1 ? 0.3 : this.level === 2 ? 0.5 : 0;
+    if (Math.random() < driftChance) {
+      const topRoom = gapY - gapH / 2 - 14;
+      const botRoom = GROUND_Y - 14 - (gapY + gapH / 2);
+      drift = Math.max(0, Math.min(6 + Math.random() * 10, topRoom, botRoom));
+    }
+    const o = new Obstacle(W + 40, gapY, gapH, this.spr, drift);
     this.obstacles.push(o);
 
     // coins: in the gap or between obstacles

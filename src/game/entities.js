@@ -100,11 +100,14 @@ let obstacleSeq = 0;
 export class Obstacle {
   // A FLOUK camera pair: one mounted on a ground pole, one hanging from a
   // top gantry pole, with a gap between them.
-  constructor(x, gapY, gapH, sprites) {
+  constructor(x, gapY, gapH, sprites, drift = 0) {
     this.x = x;
+    this.baseGapY = gapY;
     this.gapY = gapY;
     this.gapH = gapH;
     this.spr = sprites;
+    this.drift = drift; // vertical oscillation amplitude (city+ levels)
+    this.driftT = Math.random() * Math.PI * 2;
     this.passed = false;
     this.exploded = false;
     this.id = obstacleSeq++;
@@ -119,6 +122,10 @@ export class Obstacle {
 
   update(dt, speed) {
     this.x -= speed * dt;
+    if (this.drift > 0) {
+      this.driftT += dt * 1.1;
+      this.gapY = this.baseGapY + Math.sin(this.driftT) * this.drift;
+    }
     this.sweep += dt * 0.9;
     this.flashT -= dt;
     if (this.flashT <= 0) {
