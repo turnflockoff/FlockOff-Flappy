@@ -33,6 +33,41 @@ export class Input {
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => { this.keys.clear(); this.pointer.down = false; });
+
+    // Gamepad: flap on face buttons / d-pad up; navigate menus with d-pad.
+    this._padPrev = {};
+    window.addEventListener('gamepadconnected', () => { this._hasPad = true; });
+  }
+
+  // Poll gamepad state once per frame, before the game reads inputs.
+  pollGamepad() {
+    if (!this._hasPad || !navigator.getGamepads) return;
+    const pads = navigator.getGamepads();
+    for (const pad of pads) {
+      if (!pad) continue;
+      const b = (i) => pad.buttons[i] && pad.buttons[i].pressed;
+      const ax = pad.axes[1] || 0;
+      // A(0), B(1), X(2), Y(3), d-pad up(12)
+      const flap = b(0) || b(1) || b(2) || b(3);
+      const up = b(12) || ax < -0.5;
+      const down = b(13) || ax > 0.5;
+      const left = b(14);
+      const right = b(15);
+      const start = b(9);
+      const edge = (name, val) => {
+        const was = this._padPrev[name];
+        this._padPrev[name] = val;
+        return val && !was;
+      };
+      if (edge('flap', flap)) { this.flapped = true; if (this.onGesture) this.onGesture(); }
+      if (edge('up', up)) this.pressedKeys.add('ArrowUp');
+      if (edge('down', down)) this.pressedKeys.add('ArrowDown');
+      if (edge('left', left)) this.pressedKeys.add('ArrowLeft');
+      if (edge('right', right)) this.pressedKeys.add('ArrowRight');
+      if (edge('confirm', flap)) this.pressedKeys.add('Enter');
+      if (edge('start', start)) this.pressedKeys.add('Escape');
+      break; // first connected pad only
+    }
   }
 
   _point(e) {

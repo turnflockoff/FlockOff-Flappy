@@ -84,6 +84,8 @@ export class Game {
     this.floaters = [];
     this.bestBeaten = false;
     this.scorePop = 0;
+    this.combo = 0;
+    this.runMaxCombo = 0;
     this.player.reset();
   }
 
@@ -314,6 +316,22 @@ export class Game {
         this.audio.flash();
         this.scorePop = 0.3;
         this.floaters.push({ x: o.x, y: o.gapY, text: '+1', color: '#ffffff', t: 0.8 });
+        // near-miss combo: threading the gap closely pays escalating coins
+        const clearance = Math.min(p.y - o.topEnd, o.botStart - p.y);
+        if (clearance < 12) {
+          this.combo++;
+          this.runMaxCombo = Math.max(this.runMaxCombo, this.combo);
+          const bonus = Math.min(this.combo, 5);
+          this.runCoins += bonus;
+          this.save.coins += bonus;
+          this.save.stats.coinsCollected += bonus;
+          this.floaters.push({ x: o.x, y: o.gapY - 12, text: this.combo > 1 ? `CLOSE X${this.combo}` : 'CLOSE!', color: '#ff40a0', t: 1.1 });
+          this.floaters.push({ x: o.x, y: o.gapY + 12, text: `+${bonus}$`, color: '#ffd040', t: 1.1 });
+          this.audio.combo(this.combo);
+          this.shake = Math.max(this.shake, 2);
+        } else {
+          this.combo = 0;
+        }
         if (!this.bestBeaten && this.save.highScore > 0 && this.score > this.save.highScore) {
           this.bestBeaten = true;
           this.toasts.push({ text: 'NEW BEST!', sub: 'KEEP FLYING', t: 2.5 });
@@ -779,6 +797,15 @@ export class Game {
       const popColor = this.scorePop > 0 ? UI.accent : '#ffffff';
       drawTextShadow(ctx, this.score, W / 2, 8, popColor, '#20242e', popScale, 'center');
       drawText(ctx, `$ ${this.runCoins}`, 8, 8, UI.accent, 1);
+      // near-miss combo meter
+      if (this.combo > 1 && this.state === 'play') {
+        const pulse = 1 + 0.15 * Math.sin(this.time * 20);
+        ctx.save();
+        ctx.translate(8, 20);
+        ctx.scale(pulse, pulse);
+        drawText(ctx, `COMBO X${this.combo}`, 0, 0, '#ff40a0', 1);
+        ctx.restore();
+      }
       // pause icon
       ctx.fillStyle = 'rgba(255,255,255,0.85)';
       ctx.fillRect(W - 16, 8, 3, 9);

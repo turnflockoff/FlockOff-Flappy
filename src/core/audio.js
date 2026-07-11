@@ -257,6 +257,14 @@ export class AudioSys {
     this._tone('square', 1319, t + 0.14, 0.18, 0.08);
   }
 
+  combo(n) {
+    if (!this._ok()) return;
+    const base = 660 * Math.pow(1.06, Math.min(n, 12));
+    const t = this._now();
+    this._tone('square', base, t, 0.07, 0.07);
+    this._tone('square', base * 1.5, t + 0.05, 0.1, 0.05);
+  }
+
   levelUp() {
     if (!this._ok()) return;
     const t = this._now();

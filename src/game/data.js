@@ -74,6 +74,7 @@ export const ACHIEVEMENTS = [
   { id: 'flap1000', name: 'FEATHER DUSTER', desc: 'Flap 1000 times', check: (s) => s.stats.flaps >= 1000 },
   { id: 'games25', name: 'FREQUENT FLYER', desc: 'Play 25 runs', check: (s) => s.stats.games >= 25 },
   { id: 'drones10', name: 'DRONE DODGER', desc: 'Outfly 10 hunter drones', check: (s) => s.stats.dronesDodged >= 10 },
+  { id: 'combo5', name: 'THREADING THE NEEDLE', desc: 'Chain a x5 near-miss combo', check: (s, g) => g.runMaxCombo >= 5 },
   { id: 'shopper', name: 'RETAIL THERAPY', desc: 'Buy something from the shop', check: (s) => Object.keys(s.owned).length > 1 || s.upgrades.magnet > 0 || s.upgrades.revive > 0 },
   { id: 'km', name: 'AS THE DOVE FLIES', desc: 'Fly 10000 m total', check: (s) => s.stats.distance >= 10000 },
 ];

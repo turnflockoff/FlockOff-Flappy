@@ -37,6 +37,7 @@ function frame(now) {
   // load, and tab switches can produce huge gaps — clamp both ways.
   if (dt < 0) dt = 0;
   if (dt > 0.1) dt = 0.1;
+  input.pollGamepad();
   game.update(dt);
   game.draw();
   input.endFrame();
