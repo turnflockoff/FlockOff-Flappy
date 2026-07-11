@@ -1,0 +1,12 @@
+{
+  "appId": "com.turnflockoff.flappy",
+  "appName": "FlockOff Flappy",
+  "webDir": "dist",
+  "backgroundColor": "#0a0a14",
+  "android": {
+    "allowMixedContent": false
+  },
+  "ios": {
+    "contentInset": "never"
+  }
+}
