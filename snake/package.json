@@ -1,0 +1,16 @@
+{
+  "name": "snake-snake-multiplayer",
+  "version": "1.0.0",
+  "description": "SNAKE! SNAKE! — real-time multiplayer slither-style game by Turnflockoff.com",
+  "main": "server/server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

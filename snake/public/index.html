@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SNAKE! SNAKE! Multiplayer — game by Turnflockoff.com</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0e1a; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+  #game { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  .overlay {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: radial-gradient(ellipse at center, rgba(20,26,48,0.92), rgba(6,8,16,0.97));
+    z-index: 10; transition: opacity .3s;
+  }
+  .overlay.hidden { opacity: 0; pointer-events: none; }
+  .logo {
+    font-size: clamp(38px, 8.5vw, 80px); font-weight: 800; letter-spacing: 2px;
+    background: linear-gradient(90deg, #4ade80, #22d3ee, #a78bfa);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    filter: drop-shadow(0 0 24px rgba(74,222,128,.35));
+  }
+  .sub { color: #22d3ee; font-size: 14px; letter-spacing: 3px; text-transform: uppercase; margin-top: -8px; font-weight: 700; }
+  .tagline { color: #8b93b5; font-size: 15px; }
+  .byline { color: #5a6284; font-size: 13px; letter-spacing: 1px; margin-top: -8px; }
+  .byline a { color: #7dd3a8; text-decoration: none; }
+  #nameInput {
+    width: min(320px, 80vw); padding: 14px 18px; font-size: 18px; text-align: center;
+    background: rgba(255,255,255,.07); border: 2px solid rgba(255,255,255,.15);
+    border-radius: 12px; color: #fff; outline: none; transition: border-color .2s;
+  }
+  #nameInput:focus { border-color: #4ade80; }
+  .btn {
+    padding: 14px 52px; font-size: 20px; font-weight: 700; letter-spacing: 1px;
+    color: #06281a; background: linear-gradient(180deg, #4ade80, #22c55e);
+    border: none; border-radius: 12px; cursor: pointer;
+    box-shadow: 0 4px 24px rgba(74,222,128,.4); transition: transform .1s, box-shadow .2s;
+  }
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(74,222,128,.55); }
+  .btn:active { transform: translateY(0); }
+  .btn[disabled] { opacity: .5; cursor: default; transform: none; box-shadow: none; }
+  .hint { color: #6b7394; font-size: 13px; line-height: 1.7; text-align: center; }
+  .hint b { color: #aab3d5; }
+  .best { color: #fbbf24; font-size: 14px; letter-spacing: 1px; }
+  .best b { color: #fcd34d; }
+  #conn { color: #6b7394; font-size: 13px; min-height: 18px; }
+  #conn.err { color: #f87171; }
+  #conn.ok { color: #4ade80; }
+  #deathStats { color: #cdd4f0; font-size: 18px; text-align: center; line-height: 1.8; }
+  #deathStats .big { font-size: 42px; font-weight: 800; color: #4ade80; display: block; }
+  #deathTitle { font-size: clamp(32px, 7vw, 56px); font-weight: 800; color: #f87171; filter: drop-shadow(0 0 20px rgba(248,113,113,.4)); }
+
+  #hud { position: fixed; left: 14px; bottom: 12px; z-index: 5; color: #fff; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,.8); pointer-events: none; }
+  #hud b { color: #4ade80; }
+  #leaderboard {
+    position: fixed; right: 12px; top: 12px; z-index: 5; min-width: 190px;
+    background: rgba(10,14,28,.65); border: 1px solid rgba(255,255,255,.08);
+    border-radius: 10px; padding: 10px 14px; pointer-events: none; backdrop-filter: blur(4px);
+  }
+  #leaderboard h3 { color: #8b93b5; font-size: 11px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 6px; display: flex; justify-content: space-between; }
+  #leaderboard h3 span { color: #22d3ee; }
+  #lbRows > div { color: #cdd4f0; font-size: 13px; line-height: 1.75; display: flex; justify-content: space-between; gap: 14px; }
+  #lbRows > div.me { color: #4ade80; font-weight: 700; }
+  #minimap { position: fixed; right: 12px; bottom: 12px; z-index: 5; border-radius: 8px; border: 1px solid rgba(255,255,255,.1); pointer-events: none; opacity: .85; }
+  #muteBtn {
+    position: fixed; left: 12px; top: 12px; z-index: 11; width: 40px; height: 40px;
+    display: flex; align-items: center; justify-content: center; font-size: 20px;
+    background: rgba(10,14,28,.65); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 10px; color: #cdd4f0; cursor: pointer; user-select: none; backdrop-filter: blur(4px);
+  }
+  #muteBtn:hover { border-color: rgba(255,255,255,.3); }
+  @media (max-width: 600px) { #leaderboard { min-width: 150px; padding: 8px 10px; } #leaderboard div { font-size: 11px; } #minimap { width: 90px; height: 90px; } }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<canvas id="minimap" width="120" height="120"></canvas>
+<div id="muteBtn" title="Mute / unmute (M)">🔊</div>
+
+<div id="hud" style="display:none">Length: <b id="hudLen">10</b> &nbsp;·&nbsp; Kills: <b id="hudKills">0</b> &nbsp;·&nbsp; Rank: <b id="hudRank">–</b></div>
+<div id="leaderboard" style="display:none"><h3>Leaderboard <span id="lbPlayers"></span></h3><div id="lbRows"></div></div>
+
+<div id="startScreen" class="overlay">
+  <div class="logo">SNAKE! SNAKE!</div>
+  <div class="sub">Multiplayer</div>
+  <div class="tagline">Eat. Grow. Don't get flocked off.</div>
+  <div class="byline">a game by <a href="https://Turnflockoff.com" target="_blank" rel="noopener">Turnflockoff.com</a></div>
+  <div class="best" id="startBest" style="display:none">Best length: <b>0</b></div>
+  <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
+  <button id="playBtn" class="btn">PLAY</button>
+  <div id="conn">Connecting…</div>
+  <div class="hint">
+    <b>Mouse / touch</b> to steer &nbsp;·&nbsp; <b>Click / Space / double-tap-hold</b> to boost<br>
+    Real players share the arena &nbsp;·&nbsp; Crash into a snake and you're food
+  </div>
+</div>
+
+<div id="deathScreen" class="overlay hidden">
+  <div id="deathTitle">FLOCKED OFF!</div>
+  <div id="deathStats"></div>
+  <button id="respawnBtn" class="btn">PLAY AGAIN</button>
+  <div class="byline">SNAKE! SNAKE! Multiplayer — a game by Turnflockoff.com</div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const SKINS = [
+  ['#4ade80','#22c55e'], ['#60a5fa','#3b82f6'], ['#f472b6','#ec4899'], ['#fbbf24','#f59e0b'],
+  ['#a78bfa','#8b5cf6'], ['#34d399','#10b981'], ['#f87171','#ef4444'], ['#22d3ee','#06b6d4'],
+  ['#fb923c','#f97316'], ['#e879f9','#d946ef'], ['#a3e635','#84cc16'], ['#f0abfc','#c084fc'],
+];
+const INTERP_MS = 100;   // render this far behind for smooth interpolation
+const SEG_SPACING = 5;
+
+// ---------- Sound ----------
+const sfx = {
+  ctx: null, muted: false, lastEat: 0,
+  init() {
+    if (this.ctx) return;
+    try { this.ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {}
+    try { this.muted = localStorage.getItem('snakeMuted') === '1'; } catch (e) {}
+    updateMuteBtn();
+  },
+  tone(freq, dur, type = 'sine', gain = 0.12, slide = 0) {
+    if (!this.ctx || this.muted) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(), g = this.ctx.createGain();
+    o.type = type; o.frequency.setValueAtTime(freq, t);
+    if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(20, freq + slide), t + dur);
+    g.gain.setValueAtTime(gain, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g); g.connect(this.ctx.destination);
+    o.start(t); o.stop(t + dur);
+  },
+  eat() { const now = performance.now(); if (now - this.lastEat < 55) return; this.lastEat = now; this.tone(320 + Math.random() * 120, 0.08, 'triangle', 0.07, 200); },
+  boost() { this.tone(180, 0.14, 'sawtooth', 0.05, 120); },
+  die()  { this.tone(200, 0.5, 'sawtooth', 0.16, -160); },
+  toggle() { this.muted = !this.muted; try { localStorage.setItem('snakeMuted', this.muted ? '1' : '0'); } catch (e) {} updateMuteBtn(); }
+};
+function updateMuteBtn() { const b = document.getElementById('muteBtn'); if (b) b.textContent = sfx.muted ? '🔇' : '🔊'; }
+
+let bestScore = 0;
+try { bestScore = parseInt(localStorage.getItem('snakeBest') || '0', 10) || 0; } catch (e) {}
+function showStartBest() { const el = document.getElementById('startBest'); if (bestScore > 0) { el.style.display = 'block'; el.querySelector('b').textContent = bestScore; } }
+
+// ---------- Canvas ----------
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+const mini = document.getElementById('minimap');
+const mctx = mini.getContext('2d');
+let W = 0, H = 0, DPR = 1;
+function resize() {
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * DPR; canvas.height = H * DPR;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+// ---------- Networking ----------
+let ws = null, myId = 0, WORLD_R = 2200, connected = false, playing = false;
+const buf = [];          // snapshot buffer for interpolation
+let latestFood = [];     // [id,x,y,r,hue, ...]
+let hud = { len: 0, kills: 0, rank: 0 };
+let lbData = { rows: [], players: 0 };
+let prevFoodCount = -1;
+
+function wsUrl() {
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return proto + '//' + location.host;
+}
+function connect() {
+  setConn('Connecting…', '');
+  try { ws = new WebSocket(wsUrl()); } catch (e) { setConn('Connection failed', 'err'); return; }
+  ws.onopen = () => { connected = true; setConn('Connected — ready to play', 'ok'); document.getElementById('playBtn').disabled = false; };
+  ws.onclose = () => { connected = false; playing = false; setConn('Disconnected — retrying…', 'err'); document.getElementById('playBtn').disabled = true; setTimeout(connect, 1500); };
+  ws.onerror = () => { setConn('Connection error', 'err'); };
+  ws.onmessage = (ev) => {
+    let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
+    if (m.t === 'welcome') { myId = m.id; WORLD_R = m.world; }
+    else if (m.t === 's') onSnapshot(m);
+    else if (m.t === 'lb') { lbData = { rows: m.rows, players: m.players }; }
+    else if (m.t === 'dead') onDeath(m);
+  };
+}
+function setConn(txt, cls) { const el = document.getElementById('conn'); el.textContent = txt; el.className = cls; }
+
+function onSnapshot(m) {
+  const snakes = new Map();
+  for (const s of m.sn) snakes.set(s.i, s);
+  buf.push({ time: performance.now(), me: m.me, snakes });
+  if (buf.length > 5) buf.shift();
+  latestFood = m.fd;
+  hud = { len: m.ms, kills: m.mk, rank: m.mr };
+  // eat cue: food count dropped near us
+  const fc = m.fd.length / 5;
+  if (prevFoodCount >= 0 && fc < prevFoodCount) sfx.eat();
+  prevFoodCount = fc;
+}
+
+let lastBoost = false;
+function sendInput() {
+  if (!connected || !playing || !ws || ws.readyState !== 1) return;
+  const dx = pointer.x - W / 2, dy = pointer.y - H / 2;
+  let a = null;
+  if (pointer.active && dx * dx + dy * dy > 100) a = Math.atan2(dy, dx);
+  const b = pointer.down;
+  if (b && !lastBoost) sfx.boost();
+  lastBoost = b;
+  const msg = { t: 'in', b: b ? 1 : 0 };
+  if (a !== null) msg.a = a;
+  ws.send(JSON.stringify(msg));
+}
+setInterval(sendInput, 1000 / 20);
+
+// ---------- Input ----------
+const pointer = { x: 0, y: 0, down: false, active: false };
+window.addEventListener('mousemove', e => { pointer.x = e.clientX; pointer.y = e.clientY; pointer.active = true; });
+window.addEventListener('mousedown', e => { if (e.target.tagName !== 'BUTTON' && e.target.tagName !== 'INPUT') pointer.down = true; });
+window.addEventListener('mouseup', () => pointer.down = false);
+window.addEventListener('keydown', e => {
+  if (e.code === 'Space') { pointer.down = true; e.preventDefault(); }
+  if (e.code === 'Enter' && !playing) startGame();
+  if (e.code === 'KeyM') { sfx.init(); sfx.toggle(); }
+});
+window.addEventListener('keyup', e => { if (e.code === 'Space') pointer.down = false; });
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0]; pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true;
+  if (e.touches.length > 1) pointer.down = true; e.preventDefault();
+}, { passive: false });
+canvas.addEventListener('touchmove', e => { const t = e.touches[0]; pointer.x = t.clientX; pointer.y = t.clientY; e.preventDefault(); }, { passive: false });
+canvas.addEventListener('touchend', e => { if (e.touches.length <= 1) pointer.down = false; }, { passive: false });
+
+function startGame() {
+  if (!connected) return;
+  const name = (document.getElementById('nameInput').value.trim() || 'FlockOff').slice(0, 16);
+  const skin = (Math.random() * SKINS.length) | 0;
+  try { localStorage.setItem('snakeName', name); } catch (e) {}
+  sfx.init(); if (sfx.ctx && sfx.ctx.state === 'suspended') sfx.ctx.resume();
+  ws.send(JSON.stringify({ t: 'join', name, skin }));
+  playing = true;
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('deathScreen').classList.add('hidden');
+  document.getElementById('hud').style.display = 'block';
+  document.getElementById('leaderboard').style.display = 'block';
+}
+function onDeath(m) {
+  playing = false;
+  sfx.die();
+  const isBest = m.score > bestScore;
+  if (isBest) { bestScore = m.score; try { localStorage.setItem('snakeBest', String(bestScore)); } catch (e) {} }
+  document.getElementById('deathStats').innerHTML =
+    `<span class="big">${m.score}</span>final length<br>` +
+    `${m.kills} kill${m.kills === 1 ? '' : 's'} &nbsp;·&nbsp; rank #${m.rank}<br>` +
+    (isBest ? `<span class="best">🏆 NEW BEST!</span>` : `<span class="best">Best: <b>${bestScore}</b></span>`);
+  setTimeout(() => document.getElementById('deathScreen').classList.remove('hidden'), 500);
+}
+
+document.getElementById('playBtn').addEventListener('click', startGame);
+document.getElementById('respawnBtn').addEventListener('click', startGame);
+document.getElementById('nameInput').addEventListener('keydown', e => { if (e.key === 'Enter') startGame(); });
+document.getElementById('muteBtn').addEventListener('click', () => { sfx.init(); sfx.toggle(); });
+try { document.getElementById('nameInput').value = localStorage.getItem('snakeName') || 'FlockOff'; } catch (e) { document.getElementById('nameInput').value = 'FlockOff'; }
+document.getElementById('playBtn').disabled = true;
+showStartBest(); updateMuteBtn();
+
+// ---------- Interpolation ----------
+function lerp(a, b, t) { return a + (b - a) * t; }
+function angLerp(a, b, t) { let d = b - a; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2; return a + d * t; }
+
+function interpState() {
+  const renderT = performance.now() - INTERP_MS;
+  if (buf.length === 0) return null;
+  let older = null, newer = null;
+  for (let i = 0; i < buf.length - 1; i++) {
+    if (buf[i].time <= renderT && buf[i + 1].time >= renderT) { older = buf[i]; newer = buf[i + 1]; break; }
+  }
+  if (!newer) { older = buf[buf.length - 1]; newer = older; }
+  const span = newer.time - older.time;
+  const t = span > 0 ? Math.max(0, Math.min(1, (renderT - older.time) / span)) : 1;
+
+  const out = new Map();
+  for (const [id, sn] of newer.snakes) {
+    const old = older.snakes.get(id);
+    if (!old) { out.set(id, sn); continue; }
+    const n = Math.min(old.p.length, sn.p.length);
+    const pts = [];
+    for (let i = 0; i < n; i += 2) pts.push(lerp(old.p[i], sn.p[i], t), lerp(old.p[i + 1], sn.p[i + 1], t));
+    for (let i = n; i < sn.p.length; i++) pts.push(sn.p[i]);
+    out.set(id, {
+      i: id, n: sn.n, c: sn.c, r: sn.r, b: sn.b,
+      x: lerp(old.x, sn.x, t), y: lerp(old.y, sn.y, t), a: angLerp(old.a, sn.a, t), p: pts
+    });
+  }
+  return { me: newer.me, snakes: out };
+}
+
+// ---------- Camera ----------
+let camX = 0, camY = 0, zoom = 1;
+function worldToScreen(x, y) { return [(x - camX) * zoom + W / 2, (y - camY) * zoom + H / 2]; }
+
+// ---------- Render ----------
+let frame = 0;
+function render() {
+  frame++;
+  const state = interpState();
+  const me = state ? state.snakes.get(state.me) : null;
+  if (me) {
+    const len = hud.len || 10;
+    const tz = Math.max(0.55, 1 - len / 700);
+    zoom += (tz - zoom) * 0.05;
+    camX += (me.x - camX) * 0.2; camY += (me.y - camY) * 0.2;
+  }
+
+  ctx.fillStyle = '#0b0e1a';
+  ctx.fillRect(0, 0, W, H);
+
+  // grid
+  const grid = 70 * zoom;
+  ctx.strokeStyle = 'rgba(255,255,255,0.045)'; ctx.lineWidth = 1; ctx.beginPath();
+  const ox = (W / 2 - camX * zoom) % grid, oy = (H / 2 - camY * zoom) % grid;
+  for (let x = ox; x < W; x += grid) { ctx.moveTo(x, 0); ctx.lineTo(x, H); }
+  for (let y = oy; y < H; y += grid) { ctx.moveTo(0, y); ctx.lineTo(W, y); }
+  ctx.stroke();
+
+  // world border
+  const [bx, by] = worldToScreen(0, 0);
+  ctx.beginPath(); ctx.arc(bx, by, WORLD_R * zoom, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(248,113,113,0.85)'; ctx.lineWidth = 8 * zoom;
+  ctx.shadowColor = 'rgba(248,113,113,0.7)'; ctx.shadowBlur = 26; ctx.stroke(); ctx.shadowBlur = 0;
+
+  // food
+  const t = frame * 0.08;
+  for (let i = 0; i < latestFood.length; i += 5) {
+    const fx0 = latestFood[i + 1], fy0 = latestFood[i + 2], fr = latestFood[i + 3], hue = latestFood[i + 4];
+    const [fx, fy] = worldToScreen(fx0, fy0);
+    if (fx < -20 || fx > W + 20 || fy < -20 || fy > H + 20) continue;
+    const pulse = 1 + Math.sin(t + (fx0 + fy0) * 0.01) * 0.18;
+    ctx.beginPath(); ctx.arc(fx, fy, fr * zoom * pulse, 0, Math.PI * 2);
+    ctx.fillStyle = `hsl(${hue},80%,65%)`; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 9; ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+
+  // snakes (me last, on top)
+  if (state) {
+    const arr = [...state.snakes.values()].sort((a, b) => (a.i === state.me ? 1 : 0) - (b.i === state.me ? 1 : 0));
+    for (const s of arr) drawSnake(s, s.i === state.me);
+  }
+
+  drawMinimap(state, me);
+
+  // "waiting" hint if playing but no self yet
+  if (playing && !me) {
+    ctx.fillStyle = 'rgba(205,212,240,0.85)'; ctx.font = '16px "Segoe UI", sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText('Spawning…', W / 2, H / 2);
+  }
+}
+
+function drawSnake(s, isMe) {
+  const r = s.r * zoom;
+  const [hx, hy] = worldToScreen(s.x, s.y);
+  const reach = (s.p.length / 2) * SEG_SPACING * 2 * zoom + 80;
+  if (hx < -reach || hx > W + reach || hy < -reach || hy > H + reach) return;
+  const [c1, c2] = SKINS[s.c % SKINS.length];
+
+  for (let i = s.p.length - 2; i >= 0; i -= 2) {
+    const [x, y] = worldToScreen(s.p[i], s.p[i + 1]);
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = ((i / 2 / 4) | 0) % 2 === 0 ? c1 : c2;
+    if (s.b) { ctx.shadowColor = c1; ctx.shadowBlur = 16; }
+    ctx.fill(); ctx.shadowBlur = 0;
+    ctx.beginPath(); ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.55, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.09)'; ctx.fill();
+  }
+
+  // eyes
+  const ea = s.a, eo = r * 0.48, er = Math.max(2.2, r * 0.34);
+  for (const side of [-1, 1]) {
+    const ex = hx + Math.cos(ea + side * 0.9) * eo * 1.35, ey = hy + Math.sin(ea + side * 0.9) * eo * 1.35;
+    ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
+    ctx.beginPath(); ctx.arc(ex + Math.cos(ea) * er * 0.4, ey + Math.sin(ea) * er * 0.4, er * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
+  }
+
+  ctx.font = `${Math.max(11, 13 * zoom)}px 'Segoe UI', sans-serif`; ctx.textAlign = 'center';
+  ctx.fillStyle = isMe ? '#4ade80' : 'rgba(255,255,255,0.75)';
+  ctx.shadowColor = 'rgba(0,0,0,0.9)'; ctx.shadowBlur = 4;
+  ctx.fillText(s.n, hx, hy - r - 10); ctx.shadowBlur = 0;
+}
+
+function drawMinimap(state, me) {
+  const mw = mini.width, mh = mini.height;
+  mctx.clearRect(0, 0, mw, mh);
+  mctx.fillStyle = 'rgba(10,14,28,0.8)'; mctx.fillRect(0, 0, mw, mh);
+  const sc = (mw / 2 - 4) / WORLD_R;
+  mctx.beginPath(); mctx.arc(mw / 2, mh / 2, WORLD_R * sc, 0, Math.PI * 2);
+  mctx.strokeStyle = 'rgba(248,113,113,0.8)'; mctx.lineWidth = 1.5; mctx.stroke();
+  if (state) for (const s of state.snakes.values()) {
+    const isMe = s.i === state.me;
+    mctx.beginPath(); mctx.arc(mw / 2 + s.x * sc, mh / 2 + s.y * sc, isMe ? 3 : 1.6, 0, Math.PI * 2);
+    mctx.fillStyle = isMe ? '#4ade80' : 'rgba(255,255,255,0.5)'; mctx.fill();
+  }
+}
+
+// ---------- HUD ----------
+function updateHUD() {
+  document.getElementById('hudLen').textContent = hud.len || 0;
+  document.getElementById('hudKills').textContent = hud.kills || 0;
+  document.getElementById('hudRank').textContent = hud.rank ? '#' + hud.rank : '–';
+  document.getElementById('lbPlayers').textContent = lbData.players ? `${lbData.players}👤` : '';
+  const rows = (lbData.rows || []).map((s, i) =>
+    `<div class="${s.i === myId ? 'me' : ''}"><span>${i + 1}. ${escapeHtml(s.n)}</span><span>${s.v}</span></div>`
+  ).join('');
+  document.getElementById('lbRows').innerHTML = rows;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+// ---------- Loop ----------
+function loop() { requestAnimationFrame(loop); render(); if (frame % 6 === 0) updateHUD(); }
+requestAnimationFrame(loop);
+
+connect();
+})();
+</script>
+</body>
+</html>
