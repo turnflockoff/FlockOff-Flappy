@@ -65,6 +65,12 @@
   #muteBtn:hover { border-color: rgba(255,255,255,.3); }
   .best { color: #fbbf24; font-size: 14px; letter-spacing: 1px; }
   .best b { color: #fcd34d; }
+  /* ad slot — off by default; flip AD_SLOT_ENABLED in the script or fill in a real network snippet */
+  #adSlot {
+    display: none; width: 320px; max-width: 90vw; min-height: 50px; margin-top: 6px;
+    border: 1px dashed rgba(255,255,255,.15); border-radius: 8px; align-items: center; justify-content: center;
+    color: #4a5170; font-size: 11px; letter-spacing: .5px; text-transform: uppercase;
+  }
   @media (max-width: 600px) { #leaderboard { min-width: 140px; padding: 8px 10px; } #leaderboard div { font-size: 11px; } #minimap { width: 90px; height: 90px; } }
 </style>
 </head>
@@ -87,6 +93,7 @@
     <b>Mouse / touch</b> to steer &nbsp;·&nbsp; <b>Click / Space / double-tap-hold</b> to boost<br>
     Boost burns length &nbsp;·&nbsp; Crash into a snake and you're food
   </div>
+  <div id="adSlot">Advertise here — sponsor@turnflockoff.com</div>
 </div>
 
 <div id="deathScreen" class="overlay hidden">
@@ -101,12 +108,12 @@
 'use strict';
 
 // ---------- Config ----------
-const WORLD_R = 2200;            // world is a circle of this radius
-const FOOD_COUNT = 900;
-const BOT_COUNT = 14;
+const WORLD_R = 3400;            // world is a circle of this radius (bigger arena)
+const FOOD_COUNT = 2200;
+const BOT_COUNT = 20;
 const BASE_SPEED = 2.6;
 const BOOST_SPEED = 5.0;
-const TURN_RATE = 0.085;         // radians per tick per unit of "agility"
+const TURN_RATE = 0.095;         // radians per tick per unit of "agility"
 const SEG_SPACING = 5;           // px between path samples
 const START_LEN = 10;            // starting segments
 const BOOST_COST = 0.018;        // length lost per tick while boosting
@@ -118,6 +125,15 @@ const SKINS = [
   ['#a78bfa','#8b5cf6'], ['#34d399','#10b981'], ['#f87171','#ef4444'], ['#22d3ee','#06b6d4'],
   ['#fb923c','#f97316'], ['#e879f9','#d946ef'], ['#a3e635','#84cc16'], ['#f0abfc','#c084fc'],
 ];
+
+// ---------- Ad slot (off by default) ----------
+// To monetize this offline copy with display ads: set AD_SLOT_ENABLED = true
+// and replace the placeholder <div id="adSlot"> content with your ad
+// network's real embed snippet. Leave false until you have a publisher ID —
+// an empty ad box looks broken. (Paid skins live in the multiplayer version,
+// since verifying a real payment needs a server this static file doesn't have.)
+const AD_SLOT_ENABLED = false;
+if (AD_SLOT_ENABLED) { const _adEl = document.getElementById('adSlot'); if (_adEl) _adEl.style.display = 'flex'; }
 
 // ---------- Sound (self-contained WebAudio, no assets) ----------
 const sfx = {
@@ -254,6 +270,8 @@ class Snake {
     }
     this.x = p.x; this.y = p.y;
     // bot brain
+    this.target = null;      // locked food target
+    this.retargetT = 0;
     this.wanderT = 0;
     this.boostT = 0;
   }
@@ -318,6 +336,7 @@ class Snake {
       if (dd < suck * suck) {
         if (dd < (this.radius + f.r + 4) ** 2) {
           this.len += f.val;
+          if (this.target === f) this.target = null;
           removeFood(f);
           if (this.isPlayer) sfx.eat();
         } else {
@@ -421,20 +440,27 @@ showStartBest();
 updateMuteBtn();
 
 // ---------- Bot AI ----------
+// Locks onto one food target and steers toward it EVERY tick (continuous
+// pursuit) instead of recomputing a fresh "nearest food" heading only every
+// dozen ticks. Infrequent retargeting produced stale straight-line runs
+// punctuated by sharp corrections — which looks exactly like orbiting.
+// Continuous pursuit converges straight to the food instead, and retargets
+// only when the current target is gone or something meaningfully closer
+// shows up (hysteresis, so bots don't flicker between two nearby foods).
 function botThink(s) {
-  s.wanderT--;
   s.boostT--;
 
   // avoid the wall first
   const d = Math.hypot(s.x, s.y);
-  if (d > WORLD_R - 260) {
-    s.targetAngle = Math.atan2(-s.y, -s.x) + rand(-0.5, 0.5);
+  if (d > WORLD_R - 280) {
+    s.targetAngle = Math.atan2(-s.y, -s.x) + rand(-0.35, 0.35);
     s.boost = false;
+    s.target = null;
     return;
   }
 
   // avoid nearby snake bodies (cheap check against heads/segments of others)
-  let threatAng = null, threatD2 = 160 * 160;
+  let threatAng = null, threatD2 = 170 * 170;
   for (const o of snakes) {
     if (o === s || o.dead) continue;
     const segs = o.segments();
@@ -444,29 +470,39 @@ function botThink(s) {
     }
   }
   if (threatAng !== null) {
-    s.targetAngle = threatAng + Math.PI + rand(-0.4, 0.4);
-    s.boost = s.len > 40 && threatD2 < 90 * 90;
+    s.targetAngle = threatAng + Math.PI + rand(-0.3, 0.3);
+    s.boost = s.len > 40 && threatD2 < 100 * 100;
+    s.target = null;
     return;
   }
 
-  // chase food
-  if (s.wanderT <= 0) {
-    const near = foodsNear(s.x, s.y, 320);
-    let best = null, bestD = Infinity;
+  if (s.target && s.target.dead) s.target = null;
+
+  s.retargetT--;
+  if (!s.target || s.retargetT <= 0) {
+    const near = foodsNear(s.x, s.y, 420);
+    let best = s.target, bestD = s.target ? dist2(s.x, s.y, s.target.x, s.target.y) : Infinity;
     for (const f of near) {
+      if (f.dead) continue;
       const dd = dist2(s.x, s.y, f.x, f.y);
-      if (dd < bestD) { bestD = dd; best = f; }
+      if (dd < bestD * 0.7) { bestD = dd; best = f; }
     }
-    if (best) {
-      s.targetAngle = Math.atan2(best.y - s.y, best.x - s.x);
-      s.wanderT = 12;
-    } else {
-      s.targetAngle = s.angle + rand(-0.9, 0.9);
-      s.wanderT = 40 + rand(0, 50);
+    s.target = best;
+    s.retargetT = 15 + rand(0, 10);
+  }
+
+  if (s.target) {
+    s.targetAngle = Math.atan2(s.target.y - s.y, s.target.x - s.x);
+  } else {
+    s.wanderT--;
+    if (s.wanderT <= 0) {
+      s.targetAngle = s.angle + rand(-0.7, 0.7);
+      s.wanderT = 50 + rand(0, 40);
     }
   }
+
   if (s.boostT <= 0) {
-    s.boost = s.len > 60 && Math.random() < 0.06;
+    s.boost = s.len > 60 && Math.random() < 0.05;
     s.boostT = s.boost ? 40 : 30;
   }
 }

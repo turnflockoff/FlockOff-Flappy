@@ -11,9 +11,9 @@
 
   .overlay {
     position: fixed; inset: 0; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; gap: 18px;
+    align-items: center; justify-content: center; gap: 14px;
     background: radial-gradient(ellipse at center, rgba(20,26,48,0.92), rgba(6,8,16,0.97));
-    z-index: 10; transition: opacity .3s;
+    z-index: 10; transition: opacity .3s; overflow-y: auto; padding: 24px 12px;
   }
   .overlay.hidden { opacity: 0; pointer-events: none; }
   .logo {
@@ -41,6 +41,12 @@
   .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 32px rgba(74,222,128,.55); }
   .btn:active { transform: translateY(0); }
   .btn[disabled] { opacity: .5; cursor: default; transform: none; box-shadow: none; }
+  .btn-ghost {
+    padding: 9px 20px; font-size: 13px; font-weight: 600; letter-spacing: .5px;
+    color: #cdd4f0; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16);
+    border-radius: 10px; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: rgba(255,255,255,.35); }
   .hint { color: #6b7394; font-size: 13px; line-height: 1.7; text-align: center; }
   .hint b { color: #aab3d5; }
   .best { color: #fbbf24; font-size: 14px; letter-spacing: 1px; }
@@ -51,6 +57,50 @@
   #deathStats { color: #cdd4f0; font-size: 18px; text-align: center; line-height: 1.8; }
   #deathStats .big { font-size: 42px; font-weight: 800; color: #4ade80; display: block; }
   #deathTitle { font-size: clamp(32px, 7vw, 56px); font-weight: 800; color: #f87171; filter: drop-shadow(0 0 20px rgba(248,113,113,.4)); }
+
+  /* skin picker */
+  #skinRow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 420px; }
+  .swatch {
+    width: 34px; height: 34px; border-radius: 50%; cursor: pointer; border: 3px solid transparent;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.35);
+  }
+  .swatch.sel { border-color: #fff; transform: scale(1.12); }
+  .swatch.premium { position: relative; }
+  .swatch.premium.locked::after { content: '🔒'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+
+  /* shop modal */
+  #shopModal {
+    position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
+    background: rgba(4,6,14,.82); padding: 20px;
+  }
+  #shopModal.open { display: flex; }
+  .shopPanel {
+    background: #0f1424; border: 1px solid rgba(255,255,255,.1); border-radius: 16px;
+    max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px;
+  }
+  .shopPanel h2 { color: #fff; font-size: 22px; margin-bottom: 4px; }
+  .shopPanel .shopSub { color: #8b93b5; font-size: 13px; margin-bottom: 18px; }
+  .skinCard {
+    display: flex; align-items: center; gap: 14px; background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .skinCard .dot { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
+  .skinCard .info { flex: 1; min-width: 0; }
+  .skinCard .info .name { color: #fff; font-weight: 700; font-size: 15px; }
+  .skinCard .info .desc { color: #8b93b5; font-size: 12.5px; margin-top: 2px; }
+  .skinCard .buyArea { min-width: 130px; text-align: right; }
+  .skinCard .price { color: #fbbf24; font-weight: 700; font-size: 15px; }
+  .ownedTag { color: #4ade80; font-weight: 700; font-size: 13px; }
+  #shopClose { position: absolute; top: 14px; right: 18px; color: #8b93b5; font-size: 22px; cursor: pointer; background:none; border:none; }
+  .shopOffline { color: #f87171; font-size: 13px; background: rgba(248,113,113,.08); border: 1px solid rgba(248,113,113,.25); padding: 10px 14px; border-radius: 10px; margin-bottom: 14px; }
+  .shopNote { color: #5a6284; font-size: 11px; margin-top: 14px; line-height: 1.6; }
+
+  /* ad slot — off by default; flip AD_SLOT_ENABLED in the script or fill in a real network snippet */
+  #adSlot {
+    display: none; width: 320px; max-width: 90vw; min-height: 50px; margin-top: 6px;
+    border: 1px dashed rgba(255,255,255,.15); border-radius: 8px; align-items: center; justify-content: center;
+    color: #4a5170; font-size: 11px; letter-spacing: .5px; text-transform: uppercase;
+  }
 
   #hud { position: fixed; left: 14px; bottom: 12px; z-index: 5; color: #fff; font-size: 15px; text-shadow: 0 1px 4px rgba(0,0,0,.8); pointer-events: none; }
   #hud b { color: #4ade80; }
@@ -71,6 +121,13 @@
     border-radius: 10px; color: #cdd4f0; cursor: pointer; user-select: none; backdrop-filter: blur(4px);
   }
   #muteBtn:hover { border-color: rgba(255,255,255,.3); }
+  #toast {
+    position: fixed; left: 50%; top: 18px; transform: translateX(-50%) translateY(-40px);
+    background: rgba(15,20,36,.95); border: 1px solid rgba(255,255,255,.15); color: #fff;
+    padding: 10px 18px; border-radius: 10px; font-size: 13px; z-index: 30; opacity: 0; transition: all .3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   @media (max-width: 600px) { #leaderboard { min-width: 150px; padding: 8px 10px; } #leaderboard div { font-size: 11px; } #minimap { width: 90px; height: 90px; } }
 </style>
 </head>
@@ -78,6 +135,7 @@
 <canvas id="game"></canvas>
 <canvas id="minimap" width="120" height="120"></canvas>
 <div id="muteBtn" title="Mute / unmute (M)">🔊</div>
+<div id="toast"></div>
 
 <div id="hud" style="display:none">Length: <b id="hudLen">10</b> &nbsp;·&nbsp; Kills: <b id="hudKills">0</b> &nbsp;·&nbsp; Rank: <b id="hudRank">–</b></div>
 <div id="leaderboard" style="display:none"><h3>Leaderboard <span id="lbPlayers"></span></h3><div id="lbRows"></div></div>
@@ -89,12 +147,15 @@
   <div class="byline">a game by <a href="https://Turnflockoff.com" target="_blank" rel="noopener">Turnflockoff.com</a></div>
   <div class="best" id="startBest" style="display:none">Best length: <b>0</b></div>
   <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
+  <div id="skinRow"></div>
+  <button id="shopBtn" class="btn-ghost">🛍 Skin Shop</button>
   <button id="playBtn" class="btn">PLAY</button>
   <div id="conn">Connecting…</div>
   <div class="hint">
     <b>Mouse / touch</b> to steer &nbsp;·&nbsp; <b>Click / Space / double-tap-hold</b> to boost<br>
     Real players share the arena &nbsp;·&nbsp; Crash into a snake and you're food
   </div>
+  <div id="adSlot">Advertise here — sponsor@turnflockoff.com</div>
 </div>
 
 <div id="deathScreen" class="overlay hidden">
@@ -104,17 +165,43 @@
   <div class="byline">SNAKE! SNAKE! Multiplayer — a game by Turnflockoff.com</div>
 </div>
 
+<div id="shopModal">
+  <div class="shopPanel">
+    <button id="shopClose">✕</button>
+    <h2>🛍 Premium Skins</h2>
+    <div class="shopSub">Cosmetic + a small gameplay perk. One-time unlock, tied to this browser.</div>
+    <div id="shopBody">Loading…</div>
+  </div>
+</div>
+
 <script>
 (() => {
 'use strict';
 
-const SKINS = [
+const FREE_SKINS = [
   ['#4ade80','#22c55e'], ['#60a5fa','#3b82f6'], ['#f472b6','#ec4899'], ['#fbbf24','#f59e0b'],
   ['#a78bfa','#8b5cf6'], ['#34d399','#10b981'], ['#f87171','#ef4444'], ['#22d3ee','#06b6d4'],
   ['#fb923c','#f97316'], ['#e879f9','#d946ef'], ['#a3e635','#84cc16'], ['#f0abfc','#c084fc'],
 ];
+// Must match server.js PREMIUM_SKINS order/index (12-15)
+const PREMIUM_COLORS = {
+  golden:     ['#ffd700','#b8860b'],
+  magnetite:  ['#a78bfa','#4c1d95'],
+  speeddemon: ['#ff4d4d','#7f1d1d'],
+  ironscale:  ['#94a3b8','#334155'],
+};
+let SKINS = FREE_SKINS.slice(); // extended with premium colors once /api/shop responds
+
 const INTERP_MS = 100;   // render this far behind for smooth interpolation
 const SEG_SPACING = 5;
+
+// ---------- Ad slot (off by default) ----------
+// To monetize with display ads: set AD_SLOT_ENABLED = true and replace the
+// placeholder <div id="adSlot"> content with your ad network's real embed
+// snippet (e.g. Google AdSense <ins class="adsbygoogle">...). Leave false
+// until you actually have a publisher ID — an empty ad box looks broken.
+const AD_SLOT_ENABLED = false;
+if (AD_SLOT_ENABLED) { const el = document.getElementById('adSlot'); if (el) el.style.display = 'flex'; }
 
 // ---------- Sound ----------
 const sfx = {
@@ -139,13 +226,163 @@ const sfx = {
   eat() { const now = performance.now(); if (now - this.lastEat < 55) return; this.lastEat = now; this.tone(320 + Math.random() * 120, 0.08, 'triangle', 0.07, 200); },
   boost() { this.tone(180, 0.14, 'sawtooth', 0.05, 120); },
   die()  { this.tone(200, 0.5, 'sawtooth', 0.16, -160); },
+  buy()  { this.tone(520, 0.09, 'triangle', 0.09, 240); setTimeout(() => this.tone(720, 0.12, 'triangle', 0.08, 200), 90); },
   toggle() { this.muted = !this.muted; try { localStorage.setItem('snakeMuted', this.muted ? '1' : '0'); } catch (e) {} updateMuteBtn(); }
 };
 function updateMuteBtn() { const b = document.getElementById('muteBtn'); if (b) b.textContent = sfx.muted ? '🔇' : '🔊'; }
 
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._h);
+  showToast._h = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
 let bestScore = 0;
 try { bestScore = parseInt(localStorage.getItem('snakeBest') || '0', 10) || 0; } catch (e) {}
 function showStartBest() { const el = document.getElementById('startBest'); if (bestScore > 0) { el.style.display = 'block'; el.querySelector('b').textContent = bestScore; } }
+
+// ---------- Owner identity (per-browser, no login) ----------
+let ownerId = null;
+try { ownerId = localStorage.getItem('snakeOwnerId'); } catch (e) {}
+if (!ownerId) {
+  ownerId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : ('o_' + Math.random().toString(36).slice(2) + Date.now());
+  try { localStorage.setItem('snakeOwnerId', ownerId); } catch (e) {}
+}
+
+// ---------- Skin selection ----------
+let selectedSkin = 0;
+try { selectedSkin = parseInt(localStorage.getItem('snakeSkin') || '0', 10) || 0; } catch (e) {}
+
+// ---------- Shop state ----------
+let shopConfig = { shopEnabled: false, paypalClientId: null };
+let premiumSkins = [];               // [{id,index,name,price,desc}]
+let ownedSkins = new Set();
+let paypalSdkLoaded = false;
+
+async function loadShop() {
+  try {
+    shopConfig = await fetch('/api/config').then(r => r.json());
+  } catch (e) { shopConfig = { shopEnabled: false, paypalClientId: null }; }
+  try {
+    const shop = await fetch('/api/shop').then(r => r.json());
+    premiumSkins = shop.skins || [];
+    for (const s of premiumSkins) if (PREMIUM_COLORS[s.id]) SKINS[s.index] = PREMIUM_COLORS[s.id];
+  } catch (e) { premiumSkins = []; }
+  if (shopConfig.shopEnabled) {
+    try {
+      const r = await fetch('/api/shop/owned?ownerId=' + encodeURIComponent(ownerId)).then(r => r.json());
+      ownedSkins = new Set(r.owned || []);
+    } catch (e) {}
+  }
+  renderSkinRow();
+  renderShopBody();
+}
+
+function isOwned(skinIndex) {
+  if (skinIndex < 12) return true;
+  const s = premiumSkins.find(p => p.index === skinIndex);
+  return s ? ownedSkins.has(s.id) : false;
+}
+
+function selectSkin(index) {
+  if (!isOwned(index)) { openShop(); return; }
+  selectedSkin = index;
+  try { localStorage.setItem('snakeSkin', String(index)); } catch (e) {}
+  renderSkinRow();
+}
+
+function renderSkinRow() {
+  const row = document.getElementById('skinRow');
+  let html = '';
+  for (let i = 0; i < 12; i++) {
+    html += `<div class="swatch${i === selectedSkin ? ' sel' : ''}" style="background:linear-gradient(135deg,${FREE_SKINS[i][0]},${FREE_SKINS[i][1]})" data-skin="${i}" title="Free skin"></div>`;
+  }
+  for (const p of premiumSkins) {
+    const owned = ownedSkins.has(p.id);
+    const c = PREMIUM_COLORS[p.id] || ['#888', '#444'];
+    html += `<div class="swatch premium${owned ? '' : ' locked'}${p.index === selectedSkin ? ' sel' : ''}" style="background:linear-gradient(135deg,${c[0]},${c[1]})" data-skin="${p.index}" title="${p.name}${owned ? '' : ' (buy in shop)'}"></div>`;
+  }
+  row.innerHTML = html;
+  row.querySelectorAll('.swatch').forEach(el => el.addEventListener('click', () => selectSkin(parseInt(el.dataset.skin, 10))));
+}
+
+function openShop() { document.getElementById('shopModal').classList.add('open'); renderShopBody(); }
+function closeShop() { document.getElementById('shopModal').classList.remove('open'); }
+document.getElementById('shopBtn').addEventListener('click', openShop);
+document.getElementById('shopClose').addEventListener('click', closeShop);
+document.getElementById('shopModal').addEventListener('click', e => { if (e.target.id === 'shopModal') closeShop(); });
+
+function ensurePaypalSdk() {
+  if (paypalSdkLoaded || window.paypal) { paypalSdkLoaded = true; return Promise.resolve(); }
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = `https://www.paypal.com/sdk/js?client-id=${encodeURIComponent(shopConfig.paypalClientId)}&currency=USD`;
+    s.onload = () => { paypalSdkLoaded = true; resolve(); };
+    s.onerror = () => reject(new Error('PayPal SDK failed to load'));
+    document.head.appendChild(s);
+  });
+}
+
+async function renderShopBody() {
+  const body = document.getElementById('shopBody');
+  if (!shopConfig.shopEnabled) {
+    body.innerHTML = `<div class="shopOffline">Shop isn't open for purchases yet — the site owner hasn't connected a PayPal account. Check back soon!</div>`;
+    return;
+  }
+  if (!premiumSkins.length) { body.innerHTML = 'No skins available right now.'; return; }
+
+  body.innerHTML = premiumSkins.map(p => {
+    const c = PREMIUM_COLORS[p.id] || ['#888', '#444'];
+    const owned = ownedSkins.has(p.id);
+    return `<div class="skinCard" data-id="${p.id}">
+      <div class="dot" style="background:linear-gradient(135deg,${c[0]},${c[1]})"></div>
+      <div class="info"><div class="name">${escapeHtml(p.name)}</div><div class="desc">${escapeHtml(p.desc)}</div></div>
+      <div class="buyArea">
+        ${owned
+          ? `<div class="ownedTag">✓ Owned</div><button class="btn-ghost" style="margin-top:6px;padding:6px 14px;font-size:12px" data-select="${p.index}">Select</button>`
+          : `<div class="price">$${p.price.toFixed(2)}</div><div class="ppBtn" id="pp_${p.id}" style="margin-top:8px;min-width:120px"></div>`}
+      </div>
+    </div>`;
+  }).join('') + `<div class="shopNote">One-time purchase via PayPal, tied to this browser (no account needed). Payments are captured and verified server-side.</div>`;
+
+  body.querySelectorAll('[data-select]').forEach(btn => btn.addEventListener('click', () => { selectSkin(parseInt(btn.dataset.select, 10)); closeShop(); }));
+
+  const toBuy = premiumSkins.filter(p => !ownedSkins.has(p.id));
+  if (!toBuy.length) return;
+  try {
+    await ensurePaypalSdk();
+  } catch (e) { body.insertAdjacentHTML('afterbegin', `<div class="shopOffline">Couldn't reach PayPal — check your connection and try again.</div>`); return; }
+
+  for (const p of toBuy) {
+    const el = document.getElementById('pp_' + p.id);
+    if (!el || !window.paypal) continue;
+    window.paypal.Buttons({
+      style: { layout: 'horizontal', height: 34, tagline: false, label: 'pay' },
+      createOrder: async () => {
+        const r = await fetch('/api/paypal/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ skinId: p.id }) });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'order failed');
+        return data.id;
+      },
+      onApprove: async (data) => {
+        const r = await fetch('/api/paypal/capture-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: data.orderID, ownerId, skinId: p.id }) });
+        const res = await r.json();
+        if (r.ok && res.ok) {
+          ownedSkins.add(p.id);
+          sfx.init(); sfx.buy();
+          showToast(`🎉 ${p.name} unlocked!`);
+          selectSkin(p.index);
+          renderShopBody();
+        } else {
+          showToast('Payment could not be verified — no charge should have gone through.');
+        }
+      },
+      onError: () => showToast('PayPal error — please try again.'),
+    }).render(el);
+  }
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 // ---------- Canvas ----------
 const canvas = document.getElementById('game');
@@ -164,7 +401,7 @@ window.addEventListener('resize', resize);
 resize();
 
 // ---------- Networking ----------
-let ws = null, myId = 0, WORLD_R = 2200, connected = false, playing = false;
+let ws = null, myId = 0, WORLD_R = 3400, connected = false, playing = false;
 const buf = [];          // snapshot buffer for interpolation
 let latestFood = [];     // [id,x,y,r,hue, ...]
 let hud = { len: 0, kills: 0, rank: 0 };
@@ -183,7 +420,10 @@ function connect() {
   ws.onerror = () => { setConn('Connection error', 'err'); };
   ws.onmessage = (ev) => {
     let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-    if (m.t === 'welcome') { myId = m.id; WORLD_R = m.world; }
+    if (m.t === 'welcome') {
+      myId = m.id; WORLD_R = m.world;
+      if (m.premiumDenied) showToast("That skin isn't unlocked yet — playing with your default skin.");
+    }
     else if (m.t === 's') onSnapshot(m);
     else if (m.t === 'lb') { lbData = { rows: m.rows, players: m.players }; }
     else if (m.t === 'dead') onDeath(m);
@@ -228,6 +468,7 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') { pointer.down = true; e.preventDefault(); }
   if (e.code === 'Enter' && !playing) startGame();
   if (e.code === 'KeyM') { sfx.init(); sfx.toggle(); }
+  if (e.code === 'Escape') closeShop();
 });
 window.addEventListener('keyup', e => { if (e.code === 'Space') pointer.down = false; });
 canvas.addEventListener('touchstart', e => {
@@ -240,10 +481,9 @@ canvas.addEventListener('touchend', e => { if (e.touches.length <= 1) pointer.do
 function startGame() {
   if (!connected) return;
   const name = (document.getElementById('nameInput').value.trim() || 'FlockOff').slice(0, 16);
-  const skin = (Math.random() * SKINS.length) | 0;
   try { localStorage.setItem('snakeName', name); } catch (e) {}
   sfx.init(); if (sfx.ctx && sfx.ctx.state === 'suspended') sfx.ctx.resume();
-  ws.send(JSON.stringify({ t: 'join', name, skin }));
+  ws.send(JSON.stringify({ t: 'join', name, skin: selectedSkin, ownerId }));
   playing = true;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('deathScreen').classList.add('hidden');
@@ -268,7 +508,7 @@ document.getElementById('nameInput').addEventListener('keydown', e => { if (e.ke
 document.getElementById('muteBtn').addEventListener('click', () => { sfx.init(); sfx.toggle(); });
 try { document.getElementById('nameInput').value = localStorage.getItem('snakeName') || 'FlockOff'; } catch (e) { document.getElementById('nameInput').value = 'FlockOff'; }
 document.getElementById('playBtn').disabled = true;
-showStartBest(); updateMuteBtn();
+showStartBest(); updateMuteBtn(); renderSkinRow(); loadShop();
 
 // ---------- Interpolation ----------
 function lerp(a, b, t) { return a + (b - a) * t; }
@@ -367,7 +607,8 @@ function drawSnake(s, isMe) {
   const [hx, hy] = worldToScreen(s.x, s.y);
   const reach = (s.p.length / 2) * SEG_SPACING * 2 * zoom + 80;
   if (hx < -reach || hx > W + reach || hy < -reach || hy > H + reach) return;
-  const [c1, c2] = SKINS[s.c % SKINS.length];
+  const skin = SKINS[s.c] || SKINS[s.c % 12];
+  const [c1, c2] = skin;
 
   for (let i = s.p.length - 2; i >= 0; i -= 2) {
     const [x, y] = worldToScreen(s.p[i], s.p[i + 1]);
@@ -418,7 +659,6 @@ function updateHUD() {
   ).join('');
   document.getElementById('lbRows').innerHTML = rows;
 }
-function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
 
 // ---------- Loop ----------
 function loop() { requestAnimationFrame(loop); render(); if (frame % 6 === 0) updateHUD(); }
