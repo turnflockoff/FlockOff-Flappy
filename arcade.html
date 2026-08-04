@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="description" content="TurnFlockOff Arcade — a small collection of games about surveillance you can fly, dodge, and outrun. Starts with FLOCKOFF FLAPPY." />
+  <meta name="theme-color" content="#08090f" />
+  <link rel="icon" type="image/png" href="./icons/icon-64.png" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+  <title>TurnFlockOff Arcade — Game Index</title>
+  <style>
+    :root {
+      --void: #08090f;
+      --panel: #10131c;
+      --panel2: #0c0f17;
+      --edge: #232838;
+      --phosphor: #ffd040;
+      --phosphor-dim: #b08a2a;
+      --threat: #ff5050;
+      --dove: #f4f4f8;
+      --dim: #8a90a0;
+      --dimmer: #565c6c;
+      --mono: ui-monospace, "Cascadia Mono", "Source Code Pro", Menlo, Consolas, "DejaVu Sans Mono", monospace;
+      color-scheme: dark;
+    }
+
+    * { box-sizing: border-box; }
+    html { background: var(--void); }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--void);
+      color: var(--dove);
+      font-family: var(--mono);
+      font-size: 15px;
+      line-height: 1.65;
+      -webkit-font-smoothing: antialiased;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 90;
+      background:
+        repeating-linear-gradient(to bottom, rgba(0,0,0,0.10) 0px, rgba(0,0,0,0.10) 1px, transparent 1px, transparent 3px),
+        radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.35) 100%);
+    }
+
+    a { color: var(--phosphor); text-decoration-color: var(--phosphor-dim); }
+    a:hover { color: #ffe185; }
+    :focus-visible { outline: 2px solid var(--phosphor); outline-offset: 2px; }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+
+    .statusbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 8px 16px;
+      background: rgba(8, 9, 15, 0.92);
+      border-bottom: 1px solid var(--edge);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+      white-space: nowrap;
+      overflow: hidden;
+    }
+    .statusbar .net { color: var(--dove); }
+    .statusbar .live { color: var(--phosphor); }
+    .statusbar .clock { margin-left: auto; font-variant-numeric: tabular-nums; }
+    .rec { display: inline-flex; align-items: center; gap: 6px; color: var(--threat); }
+    .rec i {
+      width: 8px; height: 8px;
+      background: var(--threat);
+      border-radius: 50%;
+      animation: blink 1.2s steps(2, start) infinite;
+    }
+    @keyframes blink { 50% { opacity: 0.15; } }
+
+    main {
+      flex: 1;
+      max-width: 980px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 64px 20px 40px;
+      display: flex;
+      flex-direction: column;
+      gap: 48px;
+    }
+
+    .hero { display: flex; flex-direction: column; gap: 14px; text-align: center; align-items: center; }
+    .eyebrow {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--phosphor);
+      margin: 0;
+    }
+    .eyebrow::before { content: "> "; color: var(--phosphor-dim); }
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 6vw, 44px);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 700;
+      text-shadow: 0 0 24px rgba(255, 208, 64, 0.25);
+    }
+    h1 .off { color: var(--threat); }
+    .hero p {
+      max-width: 52ch;
+      color: var(--dim);
+      margin: 0;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 22px;
+    }
+
+    .card {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--edge);
+      background: var(--panel);
+      text-decoration: none;
+      color: inherit;
+      overflow: hidden;
+      transition: border-color 0.15s ease, transform 0.15s ease;
+    }
+    .card:hover, .card:focus-visible {
+      border-color: var(--phosphor-dim);
+      transform: translateY(-2px);
+    }
+    .card .thumb {
+      position: relative;
+      border-bottom: 1px solid var(--edge);
+      background: #0a0a14;
+    }
+    .card .thumb canvas { display: block; width: 100%; height: auto; }
+    .card .thumb .tag {
+      position: absolute;
+      top: 8px; left: 8px;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--phosphor);
+      background: rgba(8, 9, 15, 0.75);
+      border: 1px solid var(--edge);
+      padding: 2px 7px;
+    }
+    .card .body { padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 10px; }
+    .card h2 {
+      margin: 0;
+      font-size: 15px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--dove);
+    }
+    .card p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--dim);
+      flex: 1;
+    }
+    .card .enter {
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--phosphor);
+    }
+    .card .enter::after { content: " →"; }
+
+    .more {
+      text-align: center;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dimmer);
+    }
+
+    footer {
+      border-top: 1px solid var(--edge);
+      padding: 22px 20px;
+      text-align: center;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--dimmer);
+    }
+    footer a { color: var(--phosphor-dim); }
+    footer a:hover { color: var(--phosphor); }
+
+    @media (max-width: 520px) {
+      .statusbar { gap: 10px; font-size: 10px; }
+      main { padding-top: 48px; gap: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="statusbar">
+  <span class="net">TURNFLOCKOFF NETWORK</span>
+  <span class="live">GAMES ONLINE: 01</span>
+  <span class="clock"><span class="rec"><i></i>REC</span> <span id="clock">0000-00-00 00:00:00Z</span></span>
+</header>
+
+<main>
+  <section class="hero">
+    <p class="eyebrow">select a transmission to intercept</p>
+    <h1>TURN<span class="off">FLOCK</span>OFF ARCADE</h1>
+    <p>Small games about the surveillance grid that watches your street. Pick one and get flying — more transmissions land here over time.</p>
+  </section>
+
+  <section class="grid" aria-label="Games">
+    <a class="card" href="./games/flockoff-flappy/index.html">
+      <div class="thumb">
+        <span class="tag">Live</span>
+        <canvas id="thumbFlappy" width="240" height="120" role="img" aria-label="FLOCKOFF FLAPPY cover art: a white dove in disguise flying past a glowing red FLOUK surveillance camera"></canvas>
+      </div>
+      <div class="body">
+        <h2>FLOCKOFF FLAPPY</h2>
+        <p>One paranoid dove in a fake mustache versus an endless wall of FLOUK roadside cameras. Tap to flap, dodge the scanner beams, keep flying.</p>
+        <span class="enter">Enter</span>
+      </div>
+    </a>
+  </section>
+
+  <p class="more">more transmissions incoming</p>
+</main>
+
+<footer>
+  <a href="https://turnflockoff.com" rel="noopener">TURNFLOCKOFF.COM</a>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var clockEl = document.getElementById("clock");
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function tick() {
+    var d = new Date();
+    clockEl.textContent = d.getUTCFullYear() + "-" + pad(d.getUTCMonth() + 1) + "-" +
+      pad(d.getUTCDate()) + " " + pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes()) +
+      ":" + pad(d.getUTCSeconds()) + "Z";
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  // ---- mini cover-art thumbnail for the FlockOff Flappy card ----
+  var PAL = { K: "#101018", W: "#f4f4f8", w: "#c9cdd9", O: "#ff9020", N: "#d89a6a", M: "#4a3428", G: "#040408", E: "#ffffff" };
+  var DOVE = [
+    "...........KKKKKKK....",
+    "..........KWWWWWWWK...",
+    ".........KGGGGWGGGGK..",
+    ".........KGEEGGGEEGK..",
+    ".........KGGGGWGGGGK..",
+    "....KKKKKKWWWWNNWWWOOO",
+    "...KWWWWWWWWMMMMMMWOO.",
+    ".KKKWWWWWWWWWWWWWWKK..",
+    "KWWWWWWWWWWWWWWWWWK...",
+    "KWWwWWWWWWWWWWWWWK....",
+    ".KwwWWWWWWWWWWWWK.....",
+    "..KKwwwwwwwwwwKK......",
+    "....KKKKKKKKKK........"
+  ];
+  var WING_MID = [["KKKKKK.","KwwwwWK",".KKKKK."], 4, 7];
+
+  function paintMap(g, map, x, y, s) {
+    for (var r = 0; r < map.length; r++) {
+      var row = map[r];
+      for (var c = 0; c < row.length; c++) {
+        var ch = row[c];
+        if (ch !== ".") { g.fillStyle = PAL[ch]; g.fillRect(x + c * s, y + r * s, s, s); }
+      }
+    }
+  }
+
+  var cv = document.getElementById("thumbFlappy");
+  var g = cv.getContext("2d");
+  var W = cv.width, H = cv.height, GROUND = H - 14;
+
+  var sky = g.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#141a2c");
+  sky.addColorStop(1, "#0a0a14");
+  g.fillStyle = sky;
+  g.fillRect(0, 0, W, H);
+
+  // stars
+  g.fillStyle = "rgba(200,210,235,0.4)";
+  var starSeed = 11;
+  function rnd() { starSeed = (starSeed * 1103515245 + 12345) & 0x7fffffff; return starSeed / 0x7fffffff; }
+  for (var i = 0; i < 22; i++) g.fillRect(Math.floor(rnd() * W), Math.floor(rnd() * (H - 40)), 1, 1);
+
+  // distant buildings
+  g.fillStyle = "#161c2c";
+  var bx = 0;
+  while (bx < W) {
+    var bw = 18 + Math.floor(rnd() * 20);
+    var bh = 20 + Math.floor(rnd() * 30);
+    g.fillRect(bx, GROUND - bh, bw - 2, bh);
+    bx += bw;
+  }
+
+  // ground
+  g.fillStyle = "#14161e"; g.fillRect(0, GROUND, W, H - GROUND);
+  g.fillStyle = "#232838"; g.fillRect(0, GROUND, W, 2);
+
+  // FLOUK camera pole + head, right side
+  var px = W - 46, headY = 30;
+  g.fillStyle = "#3a3f4a"; g.fillRect(px + 9, headY + 14, 6, GROUND - headY - 14);
+  g.fillStyle = "#101018"; g.fillRect(px + 5, headY, 12, 3);
+  g.fillStyle = "#101018"; g.fillRect(px, headY + 3, 24, 11);
+  g.fillStyle = "#b0b4bd"; g.fillRect(px + 1, headY + 4, 22, 9);
+  g.fillStyle = "#14161c"; g.fillRect(px + 1, headY + 4, 8, 9);
+  g.fillStyle = "#c81e1e"; g.fillRect(px + 2, headY + 6, 5, 5);
+  g.fillStyle = "#ff5050"; g.fillRect(px + 3, headY + 7, 3, 3);
+  g.fillStyle = "rgba(255,80,80,0.25)"; g.fillRect(px - 1, headY + 3, 10, 11);
+
+  // dove, mid-flight, scale 2
+  var s = 2;
+  var dx = 46, dy = 40;
+  paintMap(g, DOVE, dx, dy, s);
+  paintMap(g, WING_MID[0], dx + WING_MID[1] * s, dy + WING_MID[2] * s, s);
+  g.fillStyle = "#101018";
+  g.fillRect(dx + 11 * s, dy + 3 * s, s, s);
+  g.fillRect(dx + 16 * s, dy + 3 * s, s, s);
+
+  // feather trail
+  g.fillStyle = "rgba(244,244,248,0.35)";
+  g.fillRect(dx - 6, dy + 16, 2, 2);
+  g.fillRect(dx - 14, dy + 20, 2, 2);
+  g.fillRect(dx - 20, dy + 15, 2, 2);
+})();
+</script>
+</body>
+</html>

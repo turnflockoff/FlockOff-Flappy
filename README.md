@@ -27,6 +27,17 @@ WebAudio. No binary game assets, no external dependencies at runtime.
 - **Ending** — survive to the final stage and fly into the portal:
   *MISSION COMPLETE — YOU TURNED FLOCK OFF*
 
+## Site pages
+
+Beyond the app itself (`index.html`, the Capacitor/PWA entry point that
+boots straight into the game), the repo also hosts a small marketing
+site so more games can be added later without disturbing the app:
+
+- `arcade.html` — the game index / hub, one card per game
+- `games/flockoff-flappy/index.html` — FlockOff Flappy's own promo page
+  (dossiers, mission log, zone breakdown, a playable teaser demo, and a
+  link into the full game)
+
 ## Controls
 
 | Action | Input |
@@ -70,4 +81,6 @@ src/
   game/    world, entities, particles, data, game state machine
 public/    PWA manifest, service worker, generated icons
 scripts/   icon generator (zero-dependency PNG encoder)
+arcade.html              game index / hub page
+games/flockoff-flappy/   FlockOff Flappy's promo page
 ```
