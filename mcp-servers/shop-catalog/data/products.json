@@ -1,0 +1,46 @@
+[
+  {
+    "id": "incognito-dove-disguise-glasses",
+    "name": "Incognito Dove Disguise Glasses",
+    "price_usd": 9.99,
+    "category": "novelty",
+    "tag": "NEW",
+    "emoji": "🥸",
+    "description": "The classic Groucho gag — bushy brows, big fake nose, 'stache. Our paranoid dove's official disguise, now on your face. A joke about a serious problem: you shouldn't need a disguise to run errands.",
+    "fine_print": "Novelty item. Costume use only — not PPE, not a privacy device.",
+    "active": true
+  },
+  {
+    "id": "ir-reflective-privacy-glasses",
+    "name": "IR-Reflective Privacy Glasses",
+    "price_usd": 47.99,
+    "category": "privacy",
+    "tag": "PRIVACY",
+    "emoji": "🕶️",
+    "description": "Lenses and frames engineered to reflect and reduce near-infrared, the band many IR-based face-scan and night cameras rely on.",
+    "fine_print": "Reduces IR-based capture under some conditions. Not a guarantee against all facial recognition, does nothing against bright-daylight 2D systems, and has no effect on license-plate readers. Results vary by device.",
+    "active": true
+  },
+  {
+    "id": "flock-off-plate-frame",
+    "name": "“FLOCK OFF” License Plate Frame",
+    "price_usd": 12.0,
+    "category": "merch",
+    "tag": "STREET-LEGAL",
+    "emoji": "🪧",
+    "description": "Say it every red light. Slim frame designed to sit clear of the characters, state name, and registration sticker — legal in all 50 states.",
+    "fine_print": "Install so no part of the plate text is covered, per your state's rules.",
+    "active": true
+  },
+  {
+    "id": "flock-off-sticker-pack",
+    "name": "FLOCK OFF Sticker Pack (5)",
+    "price_usd": 5.0,
+    "category": "merch",
+    "tag": "CLASSIC",
+    "emoji": "🐦‍⬛",
+    "description": "Weatherproof vinyl for laptops, water bottles, guitar cases, city-council parking meters (kidding). Spread the word.",
+    "fine_print": "Not for use on license plates or plate frames.",
+    "active": true
+  }
+]

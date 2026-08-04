@@ -1,0 +1,10 @@
+[
+  { "id": "first_flight", "name": "First Flight", "description": "Play your first game.", "icon": "🕊️" },
+  { "id": "century_club", "name": "Century Club", "description": "Score 100 points in a single run.", "icon": "💯" },
+  { "id": "flock_dodger", "name": "Flock Dodger", "description": "Score 500 points in a single run.", "icon": "🎯" },
+  { "id": "welcome_to_california", "name": "Welcome to California", "description": "Reach Level 3.", "icon": "🌴" },
+  { "id": "mission_complete", "name": "Mission Complete", "description": "Survive the final stage and fly into the TURNFLOCKOFF.COM portal.", "icon": "🏆" },
+  { "id": "pocket_change", "name": "Pocket Change", "description": "Collect 100 coins total.", "icon": "🪙" },
+  { "id": "big_spender", "name": "Big Spender", "description": "Collect 1,000 coins total.", "icon": "💰" },
+  { "id": "disguise_master", "name": "Disguise Master", "description": "Play 25 games.", "icon": "🥸" }
+]

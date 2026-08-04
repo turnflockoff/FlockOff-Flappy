@@ -68,6 +68,14 @@ src/
   core/    font, input, save, audio (chiptune synth + SFX)
   gfx/     pixel rasterizer + all procedural sprite art
   game/    world, entities, particles, data, game state machine
-public/    PWA manifest, service worker, generated icons
-scripts/   icon generator (zero-dependency PNG encoder)
+public/       PWA manifest, service worker, generated icons
+scripts/      icon generator (zero-dependency PNG encoder)
+mcp-servers/  standalone MCP servers (camera finder, shop catalog, leaderboard) — see mcp-servers/README.md
 ```
+
+## MCP servers
+
+`mcp-servers/` has three independent Model Context Protocol servers supporting the game and the
+turnflockoff.com store: an ALPR/surveillance camera finder (OpenStreetMap-backed), a merch catalog
+manager, and a high-score/achievements backend for this game. See
+[`mcp-servers/README.md`](./mcp-servers/README.md) for setup and usage.

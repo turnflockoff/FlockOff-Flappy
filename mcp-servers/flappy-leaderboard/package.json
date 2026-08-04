@@ -1,0 +1,20 @@
+{
+  "name": "@turnflockoff/mcp-flappy-leaderboard",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "MCP server backing FLOCKOFF FLAPPY with high scores, player stats, and achievements.",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0"
+  }
+}
