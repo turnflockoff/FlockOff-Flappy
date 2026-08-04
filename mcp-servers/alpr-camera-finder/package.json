@@ -1,0 +1,20 @@
+{
+  "name": "@turnflockoff/mcp-alpr-camera-finder",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Read-only MCP server for finding publicly mapped ALPR and surveillance cameras via OpenStreetMap.",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^22.9.0"
+  }
+}
