@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="TurnFlockOff Arcade — a small collection of games about surveillance you can fly, dodge, and outrun. Starts with FLOCKOFF FLAPPY." />
+  <meta name="description" content="TurnFlockOff Arcade — a small collection of games about surveillance you can fly, dodge, and outrun. Starts with FLOCKY BIRD." />
   <meta name="theme-color" content="#08090f" />
   <link rel="icon" type="image/png" href="./icons/icon-64.png" />
   <link rel="apple-touch-icon" href="./icons/icon-180.png" />
@@ -183,6 +183,91 @@
       color: var(--dimmer);
     }
 
+    /* ---- play-now panel ---- */
+    .playnow { display: flex; flex-direction: column; gap: 22px; }
+    .seclabel {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: 12px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--phosphor);
+    }
+    .seclabel::before { content: "["; color: var(--dimmer); }
+    .seclabel .x::after { content: " ]"; color: var(--dimmer); }
+    .seclabel::after { content: ""; flex: 1; height: 1px; background: var(--edge); }
+    .seclabel .full { text-transform: none; letter-spacing: normal; font-size: 12px; }
+
+    .feedchrome {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      border: 1px solid var(--edge);
+      border-bottom: none;
+      background: var(--panel);
+      padding: 7px 12px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dim);
+    }
+    .feedchrome .spacer { flex: 1; }
+    .sndbtn {
+      font: inherit;
+      letter-spacing: inherit;
+      text-transform: inherit;
+      color: var(--phosphor);
+      background: none;
+      border: 1px solid var(--edge);
+      padding: 3px 9px;
+      cursor: pointer;
+    }
+    .sndbtn:hover { border-color: var(--phosphor-dim); }
+    .sndbtn[aria-pressed="false"] { color: var(--dimmer); }
+
+    .feedframe {
+      position: relative;
+      border: 1px solid var(--edge);
+      background: #0a0a14;
+      padding: 10px;
+    }
+    .feedframe .bkt {
+      position: absolute;
+      width: 18px; height: 18px;
+      border: 2px solid var(--phosphor);
+      pointer-events: none;
+    }
+    .bkt.tl { top: 4px; left: 4px; border-right: none; border-bottom: none; }
+    .bkt.tr { top: 4px; right: 4px; border-left: none; border-bottom: none; }
+    .bkt.bl { bottom: 4px; left: 4px; border-right: none; border-top: none; }
+    .bkt.br { bottom: 4px; right: 4px; border-left: none; border-top: none; }
+
+    #homeGame {
+      display: block;
+      width: 100%;
+      height: auto;
+      aspect-ratio: 360 / 200;
+      background: #0a0a14;
+      cursor: pointer;
+      touch-action: manipulation;
+    }
+    .feedhelp {
+      border: 1px solid var(--edge);
+      border-top: none;
+      background: var(--panel2);
+      padding: 6px 12px;
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--dimmer);
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .feedhelp b { color: var(--dim); font-weight: 400; }
+
     footer {
       border-top: 1px solid var(--edge);
       padding: 22px 20px;
@@ -220,10 +305,10 @@
     <a class="card" href="./games/flockoff-flappy/index.html">
       <div class="thumb">
         <span class="tag">Live</span>
-        <canvas id="thumbFlappy" width="240" height="120" role="img" aria-label="FLOCKOFF FLAPPY cover art: a white dove in disguise flying past a glowing red FLOUK surveillance camera"></canvas>
+        <canvas id="thumbFlappy" width="240" height="120" role="img" aria-label="FLOCKY BIRD cover art: a white dove in disguise flying past a glowing red FLOUK surveillance camera"></canvas>
       </div>
       <div class="body">
-        <h2>FLOCKOFF FLAPPY</h2>
+        <h2>FLOCKY BIRD</h2>
         <p>One paranoid dove in a fake mustache versus an endless wall of FLOUK roadside cameras. Tap to flap, dodge the scanner beams, keep flying.</p>
         <span class="enter">Enter</span>
       </div>
@@ -231,15 +316,41 @@
   </section>
 
   <p class="more">more transmissions incoming</p>
+
+  <!-- PLAY NOW -->
+  <section class="playnow" aria-label="Play FLOCKY BIRD">
+    <h2 class="seclabel"><span class="x">PLAY NOW — FLOCKY BIRD</span> <a class="full" href="./games/flockoff-flappy/index.html">full page →</a></h2>
+    <div>
+      <div class="feedchrome">
+        <span>CAM 077 · SECTOR 9</span>
+        <span style="color:var(--threat)">ALPR OFFLINE</span>
+        <span class="spacer"></span>
+        <button class="sndbtn" id="homeSndBtn" aria-pressed="true">SND ON</button>
+      </div>
+      <div class="feedframe">
+        <i class="bkt tl"></i><i class="bkt tr"></i><i class="bkt bl"></i><i class="bkt br"></i>
+        <canvas id="homeGame" width="360" height="200" tabindex="0"
+          aria-label="FLOCKY BIRD playable demo. Press space or tap to flap the dove between FLOUK camera poles."></canvas>
+      </div>
+      <div class="feedhelp">
+        <span><b>TAP / CLICK / SPACE</b> — flap</span>
+        <span><b>R</b> — re-enter feed</span>
+        <span>BEST SCORE SAVED LOCALLY</span>
+      </div>
+    </div>
+  </section>
 </main>
 
 <footer>
   <a href="https://turnflockoff.com" rel="noopener">TURNFLOCKOFF.COM</a>
 </footer>
 
+<script src="./games/flockoff-flappy/flocky-bird.js"></script>
 <script>
 (function () {
   "use strict";
+
+  var FB = window.FlockyBird;
 
   var clockEl = document.getElementById("clock");
   function pad(n) { return (n < 10 ? "0" : "") + n; }
@@ -252,34 +363,12 @@
   tick();
   setInterval(tick, 1000);
 
-  // ---- mini cover-art thumbnail for the FlockOff Flappy card ----
-  var PAL = { K: "#101018", W: "#f4f4f8", w: "#c9cdd9", O: "#ff9020", N: "#d89a6a", M: "#4a3428", G: "#040408", E: "#ffffff" };
-  var DOVE = [
-    "...........KKKKKKK....",
-    "..........KWWWWWWWK...",
-    ".........KGGGGWGGGGK..",
-    ".........KGEEGGGEEGK..",
-    ".........KGGGGWGGGGK..",
-    "....KKKKKKWWWWNNWWWOOO",
-    "...KWWWWWWWWMMMMMMWOO.",
-    ".KKKWWWWWWWWWWWWWWKK..",
-    "KWWWWWWWWWWWWWWWWWK...",
-    "KWWwWWWWWWWWWWWWWK....",
-    ".KwwWWWWWWWWWWWWK.....",
-    "..KKwwwwwwwwwwKK......",
-    "....KKKKKKKKKK........"
-  ];
-  var WING_MID = [["KKKKKK.","KwwwwWK",".KKKKK."], 4, 7];
+  /* ================= PLAYABLE DEMO ================= */
+  FB.mount({ gameCanvasId: "homeGame", soundBtnId: "homeSndBtn", storageKey: "flocky_bird_best" });
 
-  function paintMap(g, map, x, y, s) {
-    for (var r = 0; r < map.length; r++) {
-      var row = map[r];
-      for (var c = 0; c < row.length; c++) {
-        var ch = row[c];
-        if (ch !== ".") { g.fillStyle = PAL[ch]; g.fillRect(x + c * s, y + r * s, s, s); }
-      }
-    }
-  }
+  // ---- mini cover-art thumbnail for the FLOCKY BIRD card ----
+  var doveFrames = FB.buildDoveFrames();
+  var floukHead = FB.buildFloukHead();
 
   var cv = document.getElementById("thumbFlappy");
   var g = cv.getContext("2d");
@@ -315,21 +404,18 @@
   var px = W - 46, headY = 30;
   g.fillStyle = "#3a3f4a"; g.fillRect(px + 9, headY + 14, 6, GROUND - headY - 14);
   g.fillStyle = "#101018"; g.fillRect(px + 5, headY, 12, 3);
-  g.fillStyle = "#101018"; g.fillRect(px, headY + 3, 24, 11);
-  g.fillStyle = "#b0b4bd"; g.fillRect(px + 1, headY + 4, 22, 9);
-  g.fillStyle = "#14161c"; g.fillRect(px + 1, headY + 4, 8, 9);
-  g.fillStyle = "#c81e1e"; g.fillRect(px + 2, headY + 6, 5, 5);
-  g.fillStyle = "#ff5050"; g.fillRect(px + 3, headY + 7, 3, 3);
   g.fillStyle = "rgba(255,80,80,0.25)"; g.fillRect(px - 1, headY + 3, 10, 11);
+  g.drawImage(floukHead, px, headY);
 
   // dove, mid-flight, scale 2
   var s = 2;
   var dx = 46, dy = 40;
-  paintMap(g, DOVE, dx, dy, s);
-  paintMap(g, WING_MID[0], dx + WING_MID[1] * s, dy + WING_MID[2] * s, s);
-  g.fillStyle = "#101018";
-  g.fillRect(dx + 11 * s, dy + 3 * s, s, s);
-  g.fillRect(dx + 16 * s, dy + 3 * s, s, s);
+  g.save();
+  g.translate(dx, dy);
+  g.scale(s, s);
+  g.drawImage(doveFrames[1], 0, 0);
+  g.restore();
+  FB.drawPupils(g, dx, dy, s, 0, 1);
 
   // feather trail
   g.fillStyle = "rgba(244,244,248,0.35)";
