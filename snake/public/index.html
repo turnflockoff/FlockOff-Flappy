@@ -67,6 +67,19 @@
   .swatch.sel { border-color: #fff; transform: scale(1.12); }
   .swatch.premium { position: relative; }
   .swatch.premium.locked::after { content: '🔒'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .swatch.rainbow, .dot.rainbow { background: conic-gradient(red,orange,yellow,lime,cyan,blue,magenta,red) !important; }
+  #hueRow { display: none; align-items: center; gap: 10px; width: min(320px, 80vw); }
+  #hueRow.show { display: flex; }
+  #hueRow input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 10px; border-radius: 6px; outline: none;
+    background: linear-gradient(90deg, red,orange,yellow,lime,cyan,blue,magenta,red);
+  }
+  #hueRow input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer;
+  }
+  #hueRow input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer; }
+  #hueSwatch { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
 
   /* shop modal */
   #shopModal {
@@ -148,6 +161,7 @@
   <div class="best" id="startBest" style="display:none">Best length: <b>0</b></div>
   <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
   <div id="skinRow"></div>
+  <div id="hueRow"><div id="hueSwatch"></div><input type="range" id="hueSlider" min="0" max="359" step="1"></div>
   <button id="shopBtn" class="btn-ghost">🛍 Skin Shop</button>
   <button id="playBtn" class="btn">PLAY</button>
   <div id="conn">Connecting…</div>
@@ -183,14 +197,17 @@ const FREE_SKINS = [
   ['#a78bfa','#8b5cf6'], ['#34d399','#10b981'], ['#f87171','#ef4444'], ['#22d3ee','#06b6d4'],
   ['#fb923c','#f97316'], ['#e879f9','#d946ef'], ['#a3e635','#84cc16'], ['#f0abfc','#c084fc'],
 ];
-// Must match server.js PREMIUM_SKINS order/index (12-15)
+// Must match server.js PREMIUM_SKINS order/index (12-15, 17)
 const PREMIUM_COLORS = {
   golden:     ['#ffd700','#b8860b'],
   magnetite:  ['#a78bfa','#4c1d95'],
   speeddemon: ['#ff4d4d','#7f1d1d'],
   ironscale:  ['#94a3b8','#334155'],
+  rainbow:    ['#ff4d4d','#4d4dff'], // fallback only — actual render cycles hue live
 };
 let SKINS = FREE_SKINS.slice(); // extended with premium colors once /api/shop responds
+const CUSTOM_SKIN_INDEX = 16;   // free — pick any hue, no purchase needed
+let premiumEffectByIndex = new Map(); // skin index -> 'shimmer'|'aura'|'flame'|'scale'|'rainbow'
 
 const INTERP_MS = 100;   // render this far behind for smooth interpolation
 const SEG_SPACING = 5;
@@ -253,6 +270,8 @@ if (!ownerId) {
 // ---------- Skin selection ----------
 let selectedSkin = 0;
 try { selectedSkin = parseInt(localStorage.getItem('snakeSkin') || '0', 10) || 0; } catch (e) {}
+let customHue = 140;
+try { customHue = parseInt(localStorage.getItem('snakeCustomHue') || '140', 10); if (!(customHue >= 0 && customHue <= 359)) customHue = 140; } catch (e) {}
 
 // ---------- Shop state ----------
 let shopConfig = { shopEnabled: false, paypalClientId: null };
@@ -267,6 +286,7 @@ async function loadShop() {
   try {
     const shop = await fetch('/api/shop').then(r => r.json());
     premiumSkins = shop.skins || [];
+    premiumEffectByIndex = new Map(premiumSkins.map(s => [s.index, s.effect]));
     for (const s of premiumSkins) if (PREMIUM_COLORS[s.id]) SKINS[s.index] = PREMIUM_COLORS[s.id];
   } catch (e) { premiumSkins = []; }
   if (shopConfig.shopEnabled) {
@@ -280,7 +300,7 @@ async function loadShop() {
 }
 
 function isOwned(skinIndex) {
-  if (skinIndex < 12) return true;
+  if (skinIndex < 12 || skinIndex === CUSTOM_SKIN_INDEX) return true;
   const s = premiumSkins.find(p => p.index === skinIndex);
   return s ? ownedSkins.has(s.id) : false;
 }
@@ -289,6 +309,7 @@ function selectSkin(index) {
   if (!isOwned(index)) { openShop(); return; }
   selectedSkin = index;
   try { localStorage.setItem('snakeSkin', String(index)); } catch (e) {}
+  document.getElementById('hueRow').classList.toggle('show', index === CUSTOM_SKIN_INDEX);
   renderSkinRow();
 }
 
@@ -298,14 +319,30 @@ function renderSkinRow() {
   for (let i = 0; i < 12; i++) {
     html += `<div class="swatch${i === selectedSkin ? ' sel' : ''}" style="background:linear-gradient(135deg,${FREE_SKINS[i][0]},${FREE_SKINS[i][1]})" data-skin="${i}" title="Free skin"></div>`;
   }
+  html += `<div class="swatch${selectedSkin === CUSTOM_SKIN_INDEX ? ' sel' : ''}" style="background:linear-gradient(135deg,hsl(${customHue},70%,55%),hsl(${customHue},70%,35%))" data-skin="${CUSTOM_SKIN_INDEX}" title="Custom color — pick any hue, free"></div>`;
   for (const p of premiumSkins) {
     const owned = ownedSkins.has(p.id);
     const c = PREMIUM_COLORS[p.id] || ['#888', '#444'];
-    html += `<div class="swatch premium${owned ? '' : ' locked'}${p.index === selectedSkin ? ' sel' : ''}" style="background:linear-gradient(135deg,${c[0]},${c[1]})" data-skin="${p.index}" title="${p.name}${owned ? '' : ' (buy in shop)'}"></div>`;
+    const rainbowCls = p.id === 'rainbow' ? ' rainbow' : '';
+    html += `<div class="swatch premium${rainbowCls}${owned ? '' : ' locked'}${p.index === selectedSkin ? ' sel' : ''}" style="${rainbowCls ? '' : `background:linear-gradient(135deg,${c[0]},${c[1]})`}" data-skin="${p.index}" title="${p.name}${owned ? '' : ' (buy in shop)'}"></div>`;
   }
   row.innerHTML = html;
   row.querySelectorAll('.swatch').forEach(el => el.addEventListener('click', () => selectSkin(parseInt(el.dataset.skin, 10))));
 }
+
+function updateHueSwatch() {
+  const sw = document.getElementById('hueSwatch');
+  if (sw) sw.style.background = `hsl(${customHue},70%,50%)`;
+}
+document.getElementById('hueSlider').value = customHue;
+updateHueSwatch();
+document.getElementById('hueSlider').addEventListener('input', (e) => {
+  customHue = parseInt(e.target.value, 10);
+  try { localStorage.setItem('snakeCustomHue', String(customHue)); } catch (err) {}
+  updateHueSwatch();
+  if (selectedSkin !== CUSTOM_SKIN_INDEX) selectSkin(CUSTOM_SKIN_INDEX); else renderSkinRow();
+});
+if (selectedSkin === CUSTOM_SKIN_INDEX) document.getElementById('hueRow').classList.add('show');
 
 function openShop() { document.getElementById('shopModal').classList.add('open'); renderShopBody(); }
 function closeShop() { document.getElementById('shopModal').classList.remove('open'); }
@@ -335,8 +372,9 @@ async function renderShopBody() {
   body.innerHTML = premiumSkins.map(p => {
     const c = PREMIUM_COLORS[p.id] || ['#888', '#444'];
     const owned = ownedSkins.has(p.id);
+    const dotStyle = p.id === 'rainbow' ? '' : `style="background:linear-gradient(135deg,${c[0]},${c[1]})"`;
     return `<div class="skinCard" data-id="${p.id}">
-      <div class="dot" style="background:linear-gradient(135deg,${c[0]},${c[1]})"></div>
+      <div class="dot${p.id === 'rainbow' ? ' rainbow' : ''}" ${dotStyle}></div>
       <div class="info"><div class="name">${escapeHtml(p.name)}</div><div class="desc">${escapeHtml(p.desc)}</div></div>
       <div class="buyArea">
         ${owned
@@ -483,7 +521,9 @@ function startGame() {
   const name = (document.getElementById('nameInput').value.trim() || 'FlockOff').slice(0, 16);
   try { localStorage.setItem('snakeName', name); } catch (e) {}
   sfx.init(); if (sfx.ctx && sfx.ctx.state === 'suspended') sfx.ctx.resume();
-  ws.send(JSON.stringify({ t: 'join', name, skin: selectedSkin, ownerId }));
+  const joinMsg = { t: 'join', name, skin: selectedSkin, ownerId };
+  if (selectedSkin === CUSTOM_SKIN_INDEX) joinMsg.hue = customHue;
+  ws.send(JSON.stringify(joinMsg));
   playing = true;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('deathScreen').classList.add('hidden');
@@ -534,7 +574,7 @@ function interpState() {
     for (let i = 0; i < n; i += 2) pts.push(lerp(old.p[i], sn.p[i], t), lerp(old.p[i + 1], sn.p[i + 1], t));
     for (let i = n; i < sn.p.length; i++) pts.push(sn.p[i]);
     out.set(id, {
-      i: id, n: sn.n, c: sn.c, r: sn.r, b: sn.b,
+      i: id, n: sn.n, c: sn.c, h: sn.h, r: sn.r, b: sn.b,
       x: lerp(old.x, sn.x, t), y: lerp(old.y, sn.y, t), a: angLerp(old.a, sn.a, t), p: pts
     });
   }
@@ -607,17 +647,66 @@ function drawSnake(s, isMe) {
   const [hx, hy] = worldToScreen(s.x, s.y);
   const reach = (s.p.length / 2) * SEG_SPACING * 2 * zoom + 80;
   if (hx < -reach || hx > W + reach || hy < -reach || hy > H + reach) return;
-  const skin = SKINS[s.c] || SKINS[s.c % 12];
-  const [c1, c2] = skin;
+
+  let c1, c2, effect = null;
+  if (s.h != null) {
+    // free custom-color skin — two-tone from the player's own hue
+    c1 = `hsl(${s.h},70%,55%)`; c2 = `hsl(${s.h},70%,35%)`;
+  } else {
+    const skin = SKINS[s.c] || SKINS[s.c % 12];
+    [c1, c2] = skin;
+    effect = premiumEffectByIndex.get(s.c) || null;
+  }
+
+  // Speed Demon: flickering flame trail behind the tail while boosting
+  if (effect === 'flame' && s.b) {
+    const tailN = Math.min(10, (s.p.length / 2) | 0);
+    for (let k = 0; k < tailN; k++) {
+      const idx = (s.p.length - 2) - k * 2;
+      if (idx < 0) break;
+      const [tx, ty] = worldToScreen(s.p[idx], s.p[idx + 1]);
+      const flick = 0.5 + 0.5 * Math.sin(frame * 0.6 + k * 1.7);
+      ctx.beginPath();
+      ctx.arc(tx, ty, r * (0.55 - k * 0.03) * (0.7 + flick * 0.3), 0, Math.PI * 2);
+      ctx.fillStyle = k % 2 === 0 ? `rgba(255,140,0,${0.5 * flick})` : `rgba(255,60,0,${0.35 * flick})`;
+      ctx.fill();
+    }
+  }
+
+  // Magnetite: pulsing magnetic aura ring around the head
+  if (effect === 'aura') {
+    const pulse = 1.7 + 0.25 * Math.sin(frame * 0.05);
+    ctx.beginPath(); ctx.arc(hx, hy, r * pulse, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(167,139,250,${0.35 + 0.15 * Math.sin(frame * 0.05)})`;
+    ctx.lineWidth = Math.max(1.5, r * 0.12); ctx.stroke();
+  }
 
   for (let i = s.p.length - 2; i >= 0; i -= 2) {
     const [x, y] = worldToScreen(s.p[i], s.p[i + 1]);
+    const segI = i / 2;
+    let fillC1 = c1, fillC2 = c2;
+    if (effect === 'rainbow') {
+      // Rainbow Serpent: hue continuously cycles along the body and over time
+      const hue = (frame * 3 + segI * 24) % 360;
+      fillC1 = `hsl(${hue},85%,60%)`; fillC2 = `hsl(${hue},85%,40%)`;
+    }
+    const bandPeriod = effect === 'scale' ? 2 : 4;
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = ((i / 2 / 4) | 0) % 2 === 0 ? c1 : c2;
-    if (s.b) { ctx.shadowColor = c1; ctx.shadowBlur = 16; }
+    ctx.fillStyle = ((segI / bandPeriod) | 0) % 2 === 0 ? fillC1 : fillC2;
+    if (s.b) { ctx.shadowColor = fillC1; ctx.shadowBlur = 16; }
     ctx.fill(); ctx.shadowBlur = 0;
+
+    // Golden Cobra: a bright highlight sweeps down the body over time
+    let hiAlpha = 0.09;
+    if (effect === 'shimmer') hiAlpha = 0.09 + 0.28 * Math.max(0, Math.sin(frame * 0.08 - segI * 0.4));
     ctx.beginPath(); ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.55, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.09)'; ctx.fill();
+    ctx.fillStyle = `rgba(255,255,255,${hiAlpha})`; ctx.fill();
+
+    // Iron Scale: a fine metallic outline on every segment
+    if (effect === 'scale') {
+      ctx.beginPath(); ctx.arc(x, y, r * 0.92, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = Math.max(1, r * 0.08); ctx.stroke();
+    }
   }
 
   // eyes

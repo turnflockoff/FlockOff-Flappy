@@ -29,19 +29,24 @@ const VIEW_R = 1500;           // how far around a player we send entities
 
 const BOT_NAMES = ['Slitherin','NoodleKing','Wormzilla','SnekDaddy','Hissy Elliott','Danger Noodle','Sir Coilsalot','Boop Snoot','Mamba №5','Pretzel','Loopy','Kaa','Nagini','Solid Snek','Ekans','Wiggles','Spaghetti','Cobra Kai','Slinky','Twizzler'];
 const FREE_SKIN_COUNT = 12;    // bots + free players pick from these
+const CUSTOM_SKIN_INDEX = 16;  // free — any player can pick their own hue, no purchase needed
 
-// ---------- Premium skins (paid, give a small balanced perk) ----------
+// ---------- Premium skins (paid, cool visual effects + a small balanced perk) ----------
 // index >= FREE_SKIN_COUNT. Prices are USD. Perks are intentionally modest —
 // no invincibility, no bigger hitbox advantage — just a flavor-appropriate edge.
+// `effect` names a client-side render flourish (shimmer/aura/flame/scale/rainbow);
+// it's purely cosmetic, computed client-side, and never affects gameplay.
 const PREMIUM_SKINS = [
-  { index: 12, id: 'golden',     name: 'Golden Cobra', price: 1.99, perk: 'startLen',   desc: '+10 starting length' },
-  { index: 13, id: 'magnetite',  name: 'Magnetite',    price: 2.49, perk: 'suction',    desc: '+30% food pull radius' },
-  { index: 14, id: 'speeddemon', name: 'Speed Demon',  price: 2.99, perk: 'boostSpeed', desc: '+8% boost speed' },
-  { index: 15, id: 'ironscale',  name: 'Iron Scale',   price: 1.99, perk: 'boostEff',   desc: 'Boost burns 15% less length' },
+  { index: 12, id: 'golden',     name: 'Golden Cobra', price: 1.99, perk: 'startLen',   desc: '+10 starting length', effect: 'shimmer' },
+  { index: 13, id: 'magnetite',  name: 'Magnetite',    price: 2.49, perk: 'suction',    desc: '+30% food pull radius', effect: 'aura' },
+  { index: 14, id: 'speeddemon', name: 'Speed Demon',  price: 2.99, perk: 'boostSpeed', desc: '+8% boost speed', effect: 'flame' },
+  { index: 15, id: 'ironscale',  name: 'Iron Scale',   price: 1.99, perk: 'boostEff',   desc: 'Boost burns 15% less length', effect: 'scale' },
+  { index: 17, id: 'rainbow',    name: 'Rainbow Serpent', price: 1.49, perk: null,      desc: 'Cosmetic — continuously shifting rainbow scales', effect: 'rainbow' },
 ];
 const PREMIUM_BY_INDEX = new Map(PREMIUM_SKINS.map(s => [s.index, s]));
 const PREMIUM_BY_ID = new Map(PREMIUM_SKINS.map(s => [s.id, s]));
-const TOTAL_SKINS = FREE_SKIN_COUNT + PREMIUM_SKINS.length;
+const TOTAL_SKINS = 18; // valid skin indices are 0..17 (0-11 free, 12-15 premium, 16 custom-free, 17 premium)
+
 
 // ---------- Payment / DB config (all optional — shop disables itself if unset) ----------
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
@@ -197,6 +202,7 @@ class Snake {
     this.skin = skin;
     this.isBot = !!isBot;
     this.premium = PREMIUM_BY_INDEX.get(skin) || null;
+    this.customHue = null;   // set by caller when skin === CUSTOM_SKIN_INDEX
     this.reset();
   }
   reset() {
@@ -421,7 +427,7 @@ function buildSnapshotFor(me) {
     if (s.dead) continue;
     if (s !== me && dist2(cx, cy, s.x, s.y) > vr2 && dist2(cx, cy, s.segs.length ? s.segs[s.segs.length - 1].x : s.x, s.segs.length ? s.segs[s.segs.length - 1].y : s.y) > vr2) continue;
     outSnakes.push({
-      i: s.id, n: s.name, c: s.skin,
+      i: s.id, n: s.name, c: s.skin, h: s.customHue,
       x: Math.round(s.x), y: Math.round(s.y),
       a: +s.angle.toFixed(3), r: +s.radius.toFixed(1),
       b: s.boost ? 1 : 0, p: netSegments(s.segs, 40)
@@ -516,10 +522,10 @@ const server = http.createServer(async (req, res) => {
 
   // ---- Shop API ----
   if (url === '/api/config' && req.method === 'GET') {
-    return sendJson(res, 200, { shopEnabled: SHOP_ENABLED, paypalClientId: SHOP_ENABLED ? PAYPAL_CLIENT_ID : null, worldRadius: WORLD_R });
+    return sendJson(res, 200, { shopEnabled: SHOP_ENABLED, paypalClientId: SHOP_ENABLED ? PAYPAL_CLIENT_ID : null, worldRadius: WORLD_R, customSkinIndex: CUSTOM_SKIN_INDEX });
   }
   if (url === '/api/shop' && req.method === 'GET') {
-    return sendJson(res, 200, { enabled: SHOP_ENABLED, skins: PREMIUM_SKINS.map(s => ({ id: s.id, index: s.index, name: s.name, price: s.price, desc: s.desc })) });
+    return sendJson(res, 200, { enabled: SHOP_ENABLED, skins: PREMIUM_SKINS.map(s => ({ id: s.id, index: s.index, name: s.name, price: s.price, desc: s.desc, effect: s.effect })) });
   }
   if (url === '/api/shop/owned' && req.method === 'GET') {
     const ownerId = new URL(req.url, 'http://x').searchParams.get('ownerId') || '';
@@ -591,14 +597,20 @@ wss.on('connection', (ws) => {
     if (msg.t === 'join' || msg.t === 'respawn') {
       let skinIndex = ((msg.skin | 0) % TOTAL_SKINS + TOTAL_SKINS) % TOTAL_SKINS;
       let premiumDenied = false;
-      const premium = PREMIUM_BY_INDEX.get(skinIndex);
-      if (premium) {
-        const ownerId = String(msg.ownerId || '').slice(0, 64);
-        const entitled = ownerId && await hasEntitlement(ownerId, premium.id);
-        if (!entitled) { skinIndex = 0; premiumDenied = true; }
+      let customHue = null;
+      if (skinIndex === CUSTOM_SKIN_INDEX) {
+        customHue = Math.max(0, Math.min(359, (msg.hue | 0) || 0));
+      } else {
+        const premium = PREMIUM_BY_INDEX.get(skinIndex);
+        if (premium) {
+          const ownerId = String(msg.ownerId || '').slice(0, 64);
+          const entitled = ownerId && await hasEntitlement(ownerId, premium.id);
+          if (!entitled) { skinIndex = 0; premiumDenied = true; }
+        }
       }
       if (snakeId && snakes.has(snakeId)) snakes.delete(snakeId);
       const s = new Snake(sanitizeName(msg.name), skinIndex, false);
+      if (customHue !== null) s.customHue = customHue;
       snakeId = s.id;
       snakes.set(s.id, s);
       clients.set(s.id, ws);

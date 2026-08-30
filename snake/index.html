@@ -65,6 +65,24 @@
   #muteBtn:hover { border-color: rgba(255,255,255,.3); }
   .best { color: #fbbf24; font-size: 14px; letter-spacing: 1px; }
   .best b { color: #fcd34d; }
+  #skinRow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 380px; }
+  .swatch {
+    width: 30px; height: 30px; border-radius: 50%; cursor: pointer; border: 3px solid transparent;
+    box-shadow: inset 0 0 0 2px rgba(0,0,0,.35);
+  }
+  .swatch.sel { border-color: #fff; transform: scale(1.12); }
+  #hueRow { display: none; align-items: center; gap: 10px; width: min(300px, 80vw); }
+  #hueRow.show { display: flex; }
+  #hueRow input[type=range] {
+    flex: 1; -webkit-appearance: none; height: 10px; border-radius: 6px; outline: none;
+    background: linear-gradient(90deg, red,orange,yellow,lime,cyan,blue,magenta,red);
+  }
+  #hueRow input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer;
+  }
+  #hueRow input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer; }
+  #hueSwatch { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
   /* ad slot — off by default; flip AD_SLOT_ENABLED in the script or fill in a real network snippet */
   #adSlot {
     display: none; width: 320px; max-width: 90vw; min-height: 50px; margin-top: 6px;
@@ -88,6 +106,8 @@
   <div class="byline">a game by <a href="https://Turnflockoff.com" target="_blank" rel="noopener">Turnflockoff.com</a></div>
   <div class="best" id="startBest" style="display:none">Best length: <b>0</b></div>
   <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
+  <div id="skinRow"></div>
+  <div id="hueRow"><div id="hueSwatch"></div><input type="range" id="hueSlider" min="0" max="359" step="1"></div>
   <button id="playBtn" class="btn">PLAY</button>
   <div class="hint">
     <b>Mouse / touch</b> to steer &nbsp;·&nbsp; <b>Click / Space / double-tap-hold</b> to boost<br>
@@ -125,6 +145,36 @@ const SKINS = [
   ['#a78bfa','#8b5cf6'], ['#34d399','#10b981'], ['#f87171','#ef4444'], ['#22d3ee','#06b6d4'],
   ['#fb923c','#f97316'], ['#e879f9','#d946ef'], ['#a3e635','#84cc16'], ['#f0abfc','#c084fc'],
 ];
+const CUSTOM_SWATCH = SKINS.length; // one more swatch: pick-your-own-hue, always free
+
+// ---------- Skin selection (free — pick any of the 12 presets, or your own hue) ----------
+let selectedSkinIdx = 0;
+try { selectedSkinIdx = parseInt(localStorage.getItem('snakeSkinIdx') || '0', 10) || 0; } catch (e) {}
+let customHue = 140;
+try { customHue = parseInt(localStorage.getItem('snakeCustomHue') || '140', 10); if (!(customHue >= 0 && customHue <= 359)) customHue = 140; } catch (e) {}
+
+function currentSkinColors() {
+  return selectedSkinIdx === CUSTOM_SWATCH
+    ? [`hsl(${customHue},70%,55%)`, `hsl(${customHue},70%,35%)`]
+    : SKINS[selectedSkinIdx];
+}
+function updateHueSwatch() { const sw = document.getElementById('hueSwatch'); if (sw) sw.style.background = `hsl(${customHue},70%,50%)`; }
+function selectSkin(idx) {
+  selectedSkinIdx = idx;
+  try { localStorage.setItem('snakeSkinIdx', String(idx)); } catch (e) {}
+  document.getElementById('hueRow').classList.toggle('show', idx === CUSTOM_SWATCH);
+  renderSkinRow();
+}
+function renderSkinRow() {
+  const row = document.getElementById('skinRow');
+  let html = '';
+  for (let i = 0; i < SKINS.length; i++) {
+    html += `<div class="swatch${i === selectedSkinIdx ? ' sel' : ''}" style="background:linear-gradient(135deg,${SKINS[i][0]},${SKINS[i][1]})" data-skin="${i}" title="Skin"></div>`;
+  }
+  html += `<div class="swatch${selectedSkinIdx === CUSTOM_SWATCH ? ' sel' : ''}" style="background:linear-gradient(135deg,hsl(${customHue},70%,55%),hsl(${customHue},70%,35%))" data-skin="${CUSTOM_SWATCH}" title="Custom color — pick any hue"></div>`;
+  row.innerHTML = html;
+  row.querySelectorAll('.swatch').forEach(el => el.addEventListener('click', () => selectSkin(parseInt(el.dataset.skin, 10))));
+}
 
 // ---------- Ad slot (off by default) ----------
 // To monetize this offline copy with display ads: set AD_SLOT_ENABLED = true
@@ -395,7 +445,7 @@ function startGame() {
   const name = (nameEl.value.trim() || 'FlockOff').slice(0, 16);
   try { localStorage.setItem('snakeName', name); } catch (e) {}
   spawnFoodField();
-  player = new Snake(name, SKINS[0], true);
+  player = new Snake(name, currentSkinColors(), true);
   snakes = [player];
   for (let i = 0; i < BOT_COUNT; i++) snakes.push(makeBot());
   running = true;
@@ -438,6 +488,16 @@ document.getElementById('muteBtn').addEventListener('click', () => { sfx.init();
 try { document.getElementById('nameInput').value = localStorage.getItem('snakeName') || 'FlockOff'; } catch (e) { document.getElementById('nameInput').value = 'FlockOff'; }
 showStartBest();
 updateMuteBtn();
+document.getElementById('hueSlider').value = customHue;
+updateHueSwatch();
+document.getElementById('hueSlider').addEventListener('input', (e) => {
+  customHue = parseInt(e.target.value, 10);
+  try { localStorage.setItem('snakeCustomHue', String(customHue)); } catch (err) {}
+  updateHueSwatch();
+  if (selectedSkinIdx !== CUSTOM_SWATCH) selectSkin(CUSTOM_SWATCH); else renderSkinRow();
+});
+if (selectedSkinIdx === CUSTOM_SWATCH) document.getElementById('hueRow').classList.add('show');
+renderSkinRow();
 
 // ---------- Bot AI ----------
 // Locks onto one food target and steers toward it EVERY tick (continuous

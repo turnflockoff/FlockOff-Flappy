@@ -93,6 +93,14 @@ own domain), not the static GitHub Pages URL.
 
 ---
 
+## Customization
+
+Both versions now have a skin picker on the start screen: the 12 free presets, plus a **🎨 Custom**
+swatch that opens a hue slider — drag it to pick literally any color, live preview, no purchase or
+account needed. It's saved in `localStorage` so it's remembered next time. In multiplayer, other
+players see your exact chosen color (the server relays your hue to everyone, so it's consistent for
+all viewers, not just you).
+
 ## Monetization
 
 Two independent ways to make money, both off by default so nothing looks broken until you turn
@@ -100,15 +108,17 @@ them on:
 
 ### 1. Premium skins via PayPal (multiplayer only)
 
-Four paid skins with a small, balanced gameplay perk (not pay-to-win — no invincibility, no bigger
+Five paid skins, each with a distinct visual flourish (not just a flat color swap) plus — except the
+purely cosmetic one — a small, balanced gameplay perk (not pay-to-win — no invincibility, no bigger
 hitbox advantage):
 
-| Skin | Price | Perk |
-|---|---|---|
-| Golden Cobra | $1.99 | +10 starting length |
-| Magnetite | $2.49 | +30% food pull radius |
-| Speed Demon | $2.99 | +8% boost speed |
-| Iron Scale | $1.99 | Boost burns 15% less length |
+| Skin | Price | Look | Perk |
+|---|---|---|---|
+| Golden Cobra | $1.99 | Gold with a shimmering highlight that sweeps down the body | +10 starting length |
+| Magnetite | $2.49 | Deep purple with a pulsing magnetic aura ring around the head | +30% food pull radius |
+| Speed Demon | $2.99 | Red/orange with a flickering flame trail while boosting | +8% boost speed |
+| Iron Scale | $1.99 | Metallic silver with a fine scale-plate outline | Boost burns 15% less length |
+| Rainbow Serpent | $1.49 | Continuously hue-shifting rainbow scales, head to tail | Cosmetic only — no perk |
 
 **How it works:** the browser generates a random id (`ownerId`, no login) the first time you play
 and remembers it in `localStorage`. When you buy a skin, the client asks the server to create a
@@ -167,7 +177,8 @@ Left off until you have a real ID — an empty ad box looks broken to players.
   with **M**
 - Persistent high score and best-length tracking; new-best celebration on death
 - Mobile support (touch steer, two-finger boost), name saved in localStorage
-- 12 free skins in both versions, plus 4 paid skins with small perks in multiplayer (see
+- 12 free skins in both versions, plus a free custom color picker (any hue) and 5 paid skins with
+  distinct visual effects and small perks in multiplayer (see
   Monetization below)
 
 The multiplayer version adds an authoritative Node server, client-side interpolation for smooth
