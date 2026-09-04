@@ -68,25 +68,27 @@
   .swatch.premium { position: relative; }
   .swatch.premium.locked::after { content: '🔒'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; }
   .swatch.rainbow, .dot.rainbow { background: conic-gradient(red,orange,yellow,lime,cyan,blue,magenta,red) !important; }
-  #hueRow { display: none; align-items: center; gap: 10px; width: min(320px, 80vw); }
+  #hueRow { display: none; flex-direction: column; gap: 8px; width: min(320px, 80vw); }
   #hueRow.show { display: flex; }
-  #hueRow input[type=range] {
+  .hueLine { display: flex; align-items: center; gap: 10px; }
+  .hueLine label { color: #8b93b5; font-size: 11px; width: 52px; flex-shrink: 0; text-align: right; text-transform: uppercase; letter-spacing: .5px; }
+  .hueLine input[type=range] {
     flex: 1; -webkit-appearance: none; height: 10px; border-radius: 6px; outline: none;
     background: linear-gradient(90deg, red,orange,yellow,lime,cyan,blue,magenta,red);
   }
-  #hueRow input[type=range]::-webkit-slider-thumb {
+  .hueLine input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%;
     background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer;
   }
-  #hueRow input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer; }
-  #hueSwatch { width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
+  .hueLine input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: #fff; border: 2px solid rgba(0,0,0,.4); cursor: pointer; }
+  .hueSwatch { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35); }
 
   /* shop modal */
-  #shopModal {
+  #shopModal, #skillShopModal {
     position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
     background: rgba(4,6,14,.82); padding: 20px;
   }
-  #shopModal.open { display: flex; }
+  #shopModal.open, #skillShopModal.open { display: flex; }
   .shopPanel {
     background: #0f1424; border: 1px solid rgba(255,255,255,.1); border-radius: 16px;
     max-width: 560px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px;
@@ -134,6 +136,33 @@
     border-radius: 10px; color: #cdd4f0; cursor: pointer; user-select: none; backdrop-filter: blur(4px);
   }
   #muteBtn:hover { border-color: rgba(255,255,255,.3); }
+  #skillBtn {
+    position: fixed; right: 18px; bottom: 90px; z-index: 6; width: 62px; height: 62px;
+    display: flex; align-items: center; justify-content: center; font-size: 26px;
+    background: radial-gradient(circle at 35% 30%, #a78bfa, #6d28d9); border: 2px solid rgba(255,255,255,.3);
+    border-radius: 50%; color: #fff; cursor: pointer; user-select: none; box-shadow: 0 4px 18px rgba(109,40,217,.55);
+    transition: transform .1s, opacity .2s;
+  }
+  #skillBtn:active { transform: scale(0.92); }
+  #skillBtn.empty { opacity: .35; filter: grayscale(1); cursor: default; }
+  #skillCharges {
+    position: absolute; bottom: -4px; right: -4px; background: #0f1424; border: 1px solid rgba(255,255,255,.3);
+    border-radius: 10px; font-size: 11px; font-family: 'Segoe UI', sans-serif; font-weight: 700; color: #fbbf24;
+    min-width: 18px; height: 18px; display: flex; align-items: center; justify-content: center; padding: 0 2px;
+  }
+  /* skill equip row (start screen) */
+  #skillRow { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; max-width: 420px; }
+  .skillChip {
+    padding: 7px 14px; border-radius: 20px; font-size: 12.5px; font-family: 'Segoe UI', sans-serif; cursor: pointer;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16); color: #cdd4f0;
+  }
+  .skillChip.sel { background: rgba(167,139,250,.25); border-color: #a78bfa; color: #fff; }
+  .skillChip.locked { opacity: .5; }
+  /* ability shop cards reuse .skinCard/.dot styling; abilityIcon replaces the color dot */
+  .abilityIcon {
+    width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center;
+    justify-content: center; font-size: 20px; background: radial-gradient(circle at 35% 30%, #a78bfa, #6d28d9);
+  }
   #toast {
     position: fixed; left: 50%; top: 18px; transform: translateX(-50%) translateY(-40px);
     background: rgba(15,20,36,.95); border: 1px solid rgba(255,255,255,.15); color: #fff;
@@ -151,6 +180,7 @@
 <div id="toast"></div>
 
 <div id="hud" style="display:none">Length: <b id="hudLen">10</b> &nbsp;·&nbsp; Kills: <b id="hudKills">0</b> &nbsp;·&nbsp; Rank: <b id="hudRank">–</b></div>
+<div id="skillBtn" style="display:none" title="Activate special skill (E)">⚡<span id="skillCharges"></span></div>
 <div id="leaderboard" style="display:none"><h3>Leaderboard <span id="lbPlayers"></span></h3><div id="lbRows"></div></div>
 
 <div id="startScreen" class="overlay">
@@ -161,8 +191,15 @@
   <div class="best" id="startBest" style="display:none">Best length: <b>0</b></div>
   <input id="nameInput" maxlength="16" placeholder="Your name" autocomplete="off">
   <div id="skinRow"></div>
-  <div id="hueRow"><div id="hueSwatch"></div><input type="range" id="hueSlider" min="0" max="359" step="1"></div>
-  <button id="shopBtn" class="btn-ghost">🛍 Skin Shop</button>
+  <div id="hueRow">
+    <div class="hueLine"><label>Primary</label><div class="hueSwatch" id="hueSwatch1"></div><input type="range" id="hueSlider1" min="0" max="359" step="1"></div>
+    <div class="hueLine"><label>Secondary</label><div class="hueSwatch" id="hueSwatch2"></div><input type="range" id="hueSlider2" min="0" max="359" step="1"></div>
+  </div>
+  <div id="skillRow"></div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+    <button id="shopBtn" class="btn-ghost">🛍 Skin Shop</button>
+    <button id="skillShopBtn" class="btn-ghost">⚡ Special Skills</button>
+  </div>
   <button id="playBtn" class="btn">PLAY</button>
   <div id="conn">Connecting…</div>
   <div class="hint">
@@ -185,6 +222,16 @@
     <h2>🛍 Premium Skins</h2>
     <div class="shopSub">Cosmetic + a small gameplay perk. One-time unlock, tied to this browser.</div>
     <div id="shopBody">Loading…</div>
+  </div>
+</div>
+
+<div id="skillShopModal">
+  <div class="shopPanel">
+    <button id="skillShopClose">✕</button>
+    <h2>⚡ Special Skills</h2>
+    <div class="shopSub">Active abilities, not passive stat boosts. Equip one before you play, trigger it live with
+      <b>E</b> or the ⚡ button. Charges refill each new life. One-time unlock, tied to this browser.</div>
+    <div id="skillShopBody">Loading…</div>
   </div>
 </div>
 
@@ -244,6 +291,13 @@ const sfx = {
   boost() { this.tone(180, 0.14, 'sawtooth', 0.05, 120); },
   die()  { this.tone(200, 0.5, 'sawtooth', 0.16, -160); },
   buy()  { this.tone(520, 0.09, 'triangle', 0.09, 240); setTimeout(() => this.tone(720, 0.12, 'triangle', 0.08, 200), 90); },
+  skill(id) {
+    if (id === 'ghost') { this.tone(180, 0.3, 'sine', 0.1, 260); }
+    else if (id === 'turbo') { this.tone(240, 0.18, 'sawtooth', 0.11, 480); }
+    else if (id === 'magnet') { this.tone(660, 0.12, 'square', 0.08, -300); }
+    else if (id === 'jam') { this.tone(90, 0.35, 'square', 0.1, 40); }
+    else this.tone(400, 0.15, 'triangle', 0.08, 0);
+  },
   toggle() { this.muted = !this.muted; try { localStorage.setItem('snakeMuted', this.muted ? '1' : '0'); } catch (e) {} updateMuteBtn(); }
 };
 function updateMuteBtn() { const b = document.getElementById('muteBtn'); if (b) b.textContent = sfx.muted ? '🔇' : '🔊'; }
@@ -270,13 +324,19 @@ if (!ownerId) {
 // ---------- Skin selection ----------
 let selectedSkin = 0;
 try { selectedSkin = parseInt(localStorage.getItem('snakeSkin') || '0', 10) || 0; } catch (e) {}
-let customHue = 140;
+let customHue = 140, customHue2 = 260;
 try { customHue = parseInt(localStorage.getItem('snakeCustomHue') || '140', 10); if (!(customHue >= 0 && customHue <= 359)) customHue = 140; } catch (e) {}
+try { customHue2 = parseInt(localStorage.getItem('snakeCustomHue2') || '260', 10); if (!(customHue2 >= 0 && customHue2 <= 359)) customHue2 = 260; } catch (e) {}
+
+// ---------- Special Skills selection ----------
+let selectedAbility = null;
+try { selectedAbility = localStorage.getItem('snakeAbility') || null; } catch (e) {}
 
 // ---------- Shop state ----------
 let shopConfig = { shopEnabled: false, paypalClientId: null };
-let premiumSkins = [];               // [{id,index,name,price,desc}]
-let ownedSkins = new Set();
+let premiumSkins = [];                // [{id,index,name,price,desc}]
+let abilitiesCatalog = [];            // [{id,name,price,desc,charges,cooldown}]
+let ownedItems = new Set();           // skin ids AND ability ids share one entitlement table
 let paypalSdkLoaded = false;
 
 async function loadShop() {
@@ -289,20 +349,27 @@ async function loadShop() {
     premiumEffectByIndex = new Map(premiumSkins.map(s => [s.index, s.effect]));
     for (const s of premiumSkins) if (PREMIUM_COLORS[s.id]) SKINS[s.index] = PREMIUM_COLORS[s.id];
   } catch (e) { premiumSkins = []; }
+  try {
+    const ab = await fetch('/api/abilities').then(r => r.json());
+    abilitiesCatalog = ab.abilities || [];
+  } catch (e) { abilitiesCatalog = []; }
   if (shopConfig.shopEnabled) {
     try {
       const r = await fetch('/api/shop/owned?ownerId=' + encodeURIComponent(ownerId)).then(r => r.json());
-      ownedSkins = new Set(r.owned || []);
+      ownedItems = new Set(r.owned || []);
     } catch (e) {}
   }
+  if (selectedAbility && !abilitiesCatalog.some(a => a.id === selectedAbility && ownedItems.has(a.id))) selectedAbility = null;
   renderSkinRow();
   renderShopBody();
+  renderSkillRow();
+  renderSkillShopBody();
 }
 
 function isOwned(skinIndex) {
   if (skinIndex < 12 || skinIndex === CUSTOM_SKIN_INDEX) return true;
   const s = premiumSkins.find(p => p.index === skinIndex);
-  return s ? ownedSkins.has(s.id) : false;
+  return s ? ownedItems.has(s.id) : false;
 }
 
 function selectSkin(index) {
@@ -319,9 +386,9 @@ function renderSkinRow() {
   for (let i = 0; i < 12; i++) {
     html += `<div class="swatch${i === selectedSkin ? ' sel' : ''}" style="background:linear-gradient(135deg,${FREE_SKINS[i][0]},${FREE_SKINS[i][1]})" data-skin="${i}" title="Free skin"></div>`;
   }
-  html += `<div class="swatch${selectedSkin === CUSTOM_SKIN_INDEX ? ' sel' : ''}" style="background:linear-gradient(135deg,hsl(${customHue},70%,55%),hsl(${customHue},70%,35%))" data-skin="${CUSTOM_SKIN_INDEX}" title="Custom color — pick any hue, free"></div>`;
+  html += `<div class="swatch${selectedSkin === CUSTOM_SKIN_INDEX ? ' sel' : ''}" style="background:linear-gradient(135deg,hsl(${customHue},70%,55%),hsl(${customHue2},70%,35%))" data-skin="${CUSTOM_SKIN_INDEX}" title="Custom colors — pick any two hues, free"></div>`;
   for (const p of premiumSkins) {
-    const owned = ownedSkins.has(p.id);
+    const owned = ownedItems.has(p.id);
     const c = PREMIUM_COLORS[p.id] || ['#888', '#444'];
     const rainbowCls = p.id === 'rainbow' ? ' rainbow' : '';
     html += `<div class="swatch premium${rainbowCls}${owned ? '' : ' locked'}${p.index === selectedSkin ? ' sel' : ''}" style="${rainbowCls ? '' : `background:linear-gradient(135deg,${c[0]},${c[1]})`}" data-skin="${p.index}" title="${p.name}${owned ? '' : ' (buy in shop)'}"></div>`;
@@ -330,16 +397,24 @@ function renderSkinRow() {
   row.querySelectorAll('.swatch').forEach(el => el.addEventListener('click', () => selectSkin(parseInt(el.dataset.skin, 10))));
 }
 
-function updateHueSwatch() {
-  const sw = document.getElementById('hueSwatch');
-  if (sw) sw.style.background = `hsl(${customHue},70%,50%)`;
+function updateHueSwatches() {
+  const sw1 = document.getElementById('hueSwatch1'), sw2 = document.getElementById('hueSwatch2');
+  if (sw1) sw1.style.background = `hsl(${customHue},70%,50%)`;
+  if (sw2) sw2.style.background = `hsl(${customHue2},70%,50%)`;
 }
-document.getElementById('hueSlider').value = customHue;
-updateHueSwatch();
-document.getElementById('hueSlider').addEventListener('input', (e) => {
+document.getElementById('hueSlider1').value = customHue;
+document.getElementById('hueSlider2').value = customHue2;
+updateHueSwatches();
+document.getElementById('hueSlider1').addEventListener('input', (e) => {
   customHue = parseInt(e.target.value, 10);
   try { localStorage.setItem('snakeCustomHue', String(customHue)); } catch (err) {}
-  updateHueSwatch();
+  updateHueSwatches();
+  if (selectedSkin !== CUSTOM_SKIN_INDEX) selectSkin(CUSTOM_SKIN_INDEX); else renderSkinRow();
+});
+document.getElementById('hueSlider2').addEventListener('input', (e) => {
+  customHue2 = parseInt(e.target.value, 10);
+  try { localStorage.setItem('snakeCustomHue2', String(customHue2)); } catch (err) {}
+  updateHueSwatches();
   if (selectedSkin !== CUSTOM_SKIN_INDEX) selectSkin(CUSTOM_SKIN_INDEX); else renderSkinRow();
 });
 if (selectedSkin === CUSTOM_SKIN_INDEX) document.getElementById('hueRow').classList.add('show');
@@ -371,7 +446,7 @@ async function renderShopBody() {
 
   body.innerHTML = premiumSkins.map(p => {
     const c = PREMIUM_COLORS[p.id] || ['#888', '#444'];
-    const owned = ownedSkins.has(p.id);
+    const owned = ownedItems.has(p.id);
     const dotStyle = p.id === 'rainbow' ? '' : `style="background:linear-gradient(135deg,${c[0]},${c[1]})"`;
     return `<div class="skinCard" data-id="${p.id}">
       <div class="dot${p.id === 'rainbow' ? ' rainbow' : ''}" ${dotStyle}></div>
@@ -386,7 +461,7 @@ async function renderShopBody() {
 
   body.querySelectorAll('[data-select]').forEach(btn => btn.addEventListener('click', () => { selectSkin(parseInt(btn.dataset.select, 10)); closeShop(); }));
 
-  const toBuy = premiumSkins.filter(p => !ownedSkins.has(p.id));
+  const toBuy = premiumSkins.filter(p => !ownedItems.has(p.id));
   if (!toBuy.length) return;
   try {
     await ensurePaypalSdk();
@@ -407,11 +482,99 @@ async function renderShopBody() {
         const r = await fetch('/api/paypal/capture-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: data.orderID, ownerId, skinId: p.id }) });
         const res = await r.json();
         if (r.ok && res.ok) {
-          ownedSkins.add(p.id);
+          ownedItems.add(p.id);
           sfx.init(); sfx.buy();
           showToast(`🎉 ${p.name} unlocked!`);
           selectSkin(p.index);
           renderShopBody();
+        } else {
+          showToast('Payment could not be verified — no charge should have gone through.');
+        }
+      },
+      onError: () => showToast('PayPal error — please try again.'),
+    }).render(el);
+  }
+}
+
+// ---------- Special Skills: equip picker + shop ----------
+function isAbilityOwned(id) { return ownedItems.has(id); }
+
+function selectAbility(id) {
+  if (id !== null && !isAbilityOwned(id)) { openSkillShop(); return; }
+  selectedAbility = id;
+  try { if (id) localStorage.setItem('snakeAbility', id); else localStorage.removeItem('snakeAbility'); } catch (e) {}
+  renderSkillRow();
+}
+
+function renderSkillRow() {
+  const row = document.getElementById('skillRow');
+  if (!row) return;
+  let html = `<div class="skillChip${selectedAbility === null ? ' sel' : ''}" data-ability="">No skill</div>`;
+  for (const a of abilitiesCatalog) {
+    const owned = isAbilityOwned(a.id);
+    html += `<div class="skillChip${owned ? '' : ' locked'}${selectedAbility === a.id ? ' sel' : ''}" data-ability="${a.id}" title="${owned ? a.desc : a.desc + ' (buy in Special Skills)'}">${owned ? '' : '🔒 '}${escapeHtml(a.name)}</div>`;
+  }
+  row.innerHTML = html;
+  row.querySelectorAll('.skillChip').forEach(el => el.addEventListener('click', () => selectAbility(el.dataset.ability || null)));
+}
+
+function openSkillShop() { document.getElementById('skillShopModal').classList.add('open'); renderSkillShopBody(); }
+function closeSkillShop() { document.getElementById('skillShopModal').classList.remove('open'); }
+document.getElementById('skillShopBtn').addEventListener('click', openSkillShop);
+document.getElementById('skillShopClose').addEventListener('click', closeSkillShop);
+document.getElementById('skillShopModal').addEventListener('click', e => { if (e.target.id === 'skillShopModal') closeSkillShop(); });
+
+const ABILITY_EMOJI = { ghost: '👻', turbo: '⚡', magnet: '🧲', jam: '📡' };
+
+async function renderSkillShopBody() {
+  const body = document.getElementById('skillShopBody');
+  if (!shopConfig.shopEnabled) {
+    body.innerHTML = `<div class="shopOffline">Special Skills aren't open for purchase yet — the site owner hasn't connected a PayPal account. Check back soon!</div>`;
+    return;
+  }
+  if (!abilitiesCatalog.length) { body.innerHTML = 'No skills available right now.'; return; }
+
+  body.innerHTML = abilitiesCatalog.map(a => {
+    const owned = isAbilityOwned(a.id);
+    return `<div class="skinCard" data-id="${a.id}">
+      <div class="abilityIcon">${ABILITY_EMOJI[a.id] || '⚡'}</div>
+      <div class="info"><div class="name">${escapeHtml(a.name)}</div><div class="desc">${escapeHtml(a.desc)} — ${a.charges} charge${a.charges === 1 ? '' : 's'}/life, ${a.cooldown}s cooldown</div></div>
+      <div class="buyArea">
+        ${owned
+          ? `<div class="ownedTag">✓ Owned</div><button class="btn-ghost" style="margin-top:6px;padding:6px 14px;font-size:12px" data-select="${a.id}">Equip</button>`
+          : `<div class="price">$${a.price.toFixed(2)}</div><div class="ppBtn" id="ppa_${a.id}" style="margin-top:8px;min-width:120px"></div>`}
+      </div>
+    </div>`;
+  }).join('') + `<div class="shopNote">One-time purchase via PayPal, tied to this browser (no account needed). Payments are captured and verified server-side.</div>`;
+
+  body.querySelectorAll('[data-select]').forEach(btn => btn.addEventListener('click', () => { selectAbility(btn.dataset.select); closeSkillShop(); }));
+
+  const toBuy = abilitiesCatalog.filter(a => !isAbilityOwned(a.id));
+  if (!toBuy.length) return;
+  try {
+    await ensurePaypalSdk();
+  } catch (e) { body.insertAdjacentHTML('afterbegin', `<div class="shopOffline">Couldn't reach PayPal — check your connection and try again.</div>`); return; }
+
+  for (const a of toBuy) {
+    const el = document.getElementById('ppa_' + a.id);
+    if (!el || !window.paypal) continue;
+    window.paypal.Buttons({
+      style: { layout: 'horizontal', height: 34, tagline: false, label: 'pay' },
+      createOrder: async () => {
+        const r = await fetch('/api/paypal/create-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ itemId: a.id }) });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'order failed');
+        return data.id;
+      },
+      onApprove: async (data) => {
+        const r = await fetch('/api/paypal/capture-order', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: data.orderID, ownerId, itemId: a.id }) });
+        const res = await r.json();
+        if (r.ok && res.ok) {
+          ownedItems.add(a.id);
+          sfx.init(); sfx.buy();
+          showToast(`⚡ ${a.name} unlocked!`);
+          selectAbility(a.id);
+          renderSkillShopBody();
         } else {
           showToast('Payment could not be verified — no charge should have gone through.');
         }
@@ -461,6 +624,7 @@ function connect() {
     if (m.t === 'welcome') {
       myId = m.id; WORLD_R = m.world;
       if (m.premiumDenied) showToast("That skin isn't unlocked yet — playing with your default skin.");
+      if (m.abilityDenied) showToast("That skill isn't unlocked yet — playing with no skill equipped.");
     }
     else if (m.t === 's') onSnapshot(m);
     else if (m.t === 'lb') { lbData = { rows: m.rows, players: m.players }; }
@@ -469,17 +633,20 @@ function connect() {
 }
 function setConn(txt, cls) { const el = document.getElementById('conn'); el.textContent = txt; el.className = cls; }
 
+let lastAbilityCharges = null;
 function onSnapshot(m) {
   const snakes = new Map();
   for (const s of m.sn) snakes.set(s.i, s);
   buf.push({ time: performance.now(), me: m.me, snakes });
   if (buf.length > 5) buf.shift();
   latestFood = m.fd;
-  hud = { len: m.ms, kills: m.mk, rank: m.mr };
+  hud = { len: m.ms, kills: m.mk, rank: m.mr, ab: m.ab || null };
   // eat cue: food count dropped near us
   const fc = m.fd.length / 5;
   if (prevFoodCount >= 0 && fc < prevFoodCount) sfx.eat();
   prevFoodCount = fc;
+  if (m.ab && lastAbilityCharges !== null && m.ab.charges < lastAbilityCharges) sfx.skill(m.ab.id);
+  lastAbilityCharges = m.ab ? m.ab.charges : null;
 }
 
 let lastBoost = false;
@@ -506,8 +673,14 @@ window.addEventListener('keydown', e => {
   if (e.code === 'Space') { pointer.down = true; e.preventDefault(); }
   if (e.code === 'Enter' && !playing) startGame();
   if (e.code === 'KeyM') { sfx.init(); sfx.toggle(); }
-  if (e.code === 'Escape') closeShop();
+  if (e.code === 'KeyE') useSkill();
+  if (e.code === 'Escape') { closeShop(); closeSkillShop(); }
 });
+function useSkill() {
+  if (!connected || !playing || !ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ t: 'skill' }));
+}
+document.getElementById('skillBtn').addEventListener('click', useSkill);
 window.addEventListener('keyup', e => { if (e.code === 'Space') pointer.down = false; });
 canvas.addEventListener('touchstart', e => {
   const t = e.touches[0]; pointer.x = t.clientX; pointer.y = t.clientY; pointer.active = true;
@@ -521,17 +694,19 @@ function startGame() {
   const name = (document.getElementById('nameInput').value.trim() || 'FlockOff').slice(0, 16);
   try { localStorage.setItem('snakeName', name); } catch (e) {}
   sfx.init(); if (sfx.ctx && sfx.ctx.state === 'suspended') sfx.ctx.resume();
-  const joinMsg = { t: 'join', name, skin: selectedSkin, ownerId };
-  if (selectedSkin === CUSTOM_SKIN_INDEX) joinMsg.hue = customHue;
+  const joinMsg = { t: 'join', name, skin: selectedSkin, ownerId, ability: selectedAbility };
+  if (selectedSkin === CUSTOM_SKIN_INDEX) { joinMsg.hue = customHue; joinMsg.hue2 = customHue2; }
   ws.send(JSON.stringify(joinMsg));
   playing = true;
   document.getElementById('startScreen').classList.add('hidden');
   document.getElementById('deathScreen').classList.add('hidden');
   document.getElementById('hud').style.display = 'block';
   document.getElementById('leaderboard').style.display = 'block';
+  document.getElementById('skillBtn').style.display = selectedAbility ? 'flex' : 'none';
 }
 function onDeath(m) {
   playing = false;
+  document.getElementById('skillBtn').style.display = 'none';
   sfx.die();
   const isBest = m.score > bestScore;
   if (isBest) { bestScore = m.score; try { localStorage.setItem('snakeBest', String(bestScore)); } catch (e) {} }
@@ -574,7 +749,7 @@ function interpState() {
     for (let i = 0; i < n; i += 2) pts.push(lerp(old.p[i], sn.p[i], t), lerp(old.p[i + 1], sn.p[i + 1], t));
     for (let i = n; i < sn.p.length; i++) pts.push(sn.p[i]);
     out.set(id, {
-      i: id, n: sn.n, c: sn.c, h: sn.h, r: sn.r, b: sn.b,
+      i: id, n: sn.n, c: sn.c, h: sn.h, h2: sn.h2, r: sn.r, b: sn.b, g: sn.g, tb: sn.tb, jm: sn.jm,
       x: lerp(old.x, sn.x, t), y: lerp(old.y, sn.y, t), a: angLerp(old.a, sn.a, t), p: pts
     });
   }
@@ -650,12 +825,28 @@ function drawSnake(s, isMe) {
 
   let c1, c2, effect = null;
   if (s.h != null) {
-    // free custom-color skin — two-tone from the player's own hue
-    c1 = `hsl(${s.h},70%,55%)`; c2 = `hsl(${s.h},70%,35%)`;
+    // free custom-color skin — two independently-picked hues
+    c1 = `hsl(${s.h},70%,55%)`; c2 = `hsl(${s.h2 != null ? s.h2 : s.h},70%,35%)`;
   } else {
     const skin = SKINS[s.c] || SKINS[s.c % 12];
     [c1, c2] = skin;
     effect = premiumEffectByIndex.get(s.c) || null;
+  }
+
+  // Jam Signal: an expanding radar-style pulse around the jammer, showing its reach
+  if (s.jm) {
+    const jr = (frame * 9) % 500;
+    ctx.beginPath(); ctx.arc(hx, hy, jr * zoom, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(248,113,113,${Math.max(0, 0.45 - jr / 500 * 0.45)})`;
+    ctx.lineWidth = 2; ctx.stroke();
+  }
+  // Turbo Burst: short speed-line streaks trailing the head
+  if (s.tb) {
+    for (let k = 1; k <= 3; k++) {
+      const bx = hx - Math.cos(s.a) * r * (1.6 + k * 0.9), by = hy - Math.sin(s.a) * r * (1.6 + k * 0.9);
+      ctx.beginPath(); ctx.arc(bx, by, r * 0.4, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(253,224,71,${0.4 - k * 0.1})`; ctx.fill();
+    }
   }
 
   // Speed Demon: flickering flame trail behind the tail while boosting
@@ -681,6 +872,7 @@ function drawSnake(s, isMe) {
     ctx.lineWidth = Math.max(1.5, r * 0.12); ctx.stroke();
   }
 
+  if (s.g) ctx.globalAlpha = 0.5; // Ghost Mode: translucent body (head/eyes stay full-opacity below)
   for (let i = s.p.length - 2; i >= 0; i -= 2) {
     const [x, y] = worldToScreen(s.p[i], s.p[i + 1]);
     const segI = i / 2;
@@ -708,6 +900,7 @@ function drawSnake(s, isMe) {
       ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = Math.max(1, r * 0.08); ctx.stroke();
     }
   }
+  ctx.globalAlpha = 1;
 
   // eyes
   const ea = s.a, eo = r * 0.48, er = Math.max(2.2, r * 0.34);
@@ -747,6 +940,13 @@ function updateHUD() {
     `<div class="${s.i === myId ? 'me' : ''}"><span>${i + 1}. ${escapeHtml(s.n)}</span><span>${s.v}</span></div>`
   ).join('');
   document.getElementById('lbRows').innerHTML = rows;
+
+  if (playing && hud.ab) {
+    const btn = document.getElementById('skillBtn'), ch = document.getElementById('skillCharges');
+    const ready = hud.ab.charges > 0 && hud.ab.cd <= 0;
+    btn.classList.toggle('empty', !ready);
+    ch.textContent = hud.ab.cd > 0 ? hud.ab.cd : hud.ab.charges;
+  }
 }
 
 // ---------- Loop ----------

@@ -95,16 +95,16 @@ own domain), not the static GitHub Pages URL.
 
 ## Customization
 
-Both versions now have a skin picker on the start screen: the 12 free presets, plus a **🎨 Custom**
-swatch that opens a hue slider — drag it to pick literally any color, live preview, no purchase or
-account needed. It's saved in `localStorage` so it's remembered next time. In multiplayer, other
-players see your exact chosen color (the server relays your hue to everyone, so it's consistent for
-all viewers, not just you).
+Both versions have a skin picker on the start screen: the 12 free presets, plus a **🎨 Custom**
+swatch that opens two independent hue sliders — Primary and Secondary — so you can pick literally
+any two-tone combination, not just a single color auto-shaded darker. Live preview, no purchase or
+account needed, saved in `localStorage`. In multiplayer, other players see your exact chosen colors
+(the server relays both hues to everyone, so it's consistent for all viewers, not just you).
 
 ## Monetization
 
-Two independent ways to make money, both off by default so nothing looks broken until you turn
-them on:
+Three independent ways to make money — two paid product lines plus ads — all off by default so
+nothing looks broken until you turn them on:
 
 ### 1. Premium skins via PayPal (multiplayer only)
 
@@ -150,7 +150,35 @@ themselves a skin by calling the API directly.
 exists yet). Clearing site data or switching devices loses access to purchased skins. Adding proper
 accounts (e.g. Supabase Auth) would fix this — ask if you want that built next.
 
-### 2. Ad slot (both versions)
+### 2. Special Skills via PayPal (multiplayer only, free trial in single-player)
+
+A second, entirely different product line from the passive perk-skins above: **active abilities**
+you trigger live during a match with **E** or the ⚡ button, not a stat you just carry around. Equip
+one (owned skills only) before you press Play; it recharges with fresh charges every new life.
+
+| Skill | Price | What it does | Charges/life | Cooldown |
+|---|---|---|---|---|
+| 👻 Ghost Mode | $2.99 | 2.5s pass through other snakes' bodies unharmed (a head-on collision is still resolved normally — bigger snake wins) | 2 | 8s |
+| ⚡ Turbo Burst | $1.99 | 1s of free speed — unlike regular boost, it burns no length | 3 | 6s |
+| 🧲 Magnet Pulse | $2.49 | Instantly pulls in every food pellet in a wide radius around you in one burst | 2 | 10s |
+| 📡 Jam Signal | $3.49 | 4s: every bot within a big radius of you loses track of you completely and just wanders — the surveillance-jamming fantasy, worth the highest price | 1 | — |
+
+Everything about a skill's effect is decided **server-side** — charges, cooldowns, and what actually
+happens in the simulation all live in `server.js`; the client just sends "I pressed the button" and
+renders whatever the server says happened (a translucent body for Ghost Mode, speed-line streaks for
+Turbo, an expanding radar pulse for Jam Signal). A player can't grant themselves extra charges or a
+zero cooldown by tampering with the page.
+
+Purchases reuse the *exact same* Supabase tables and PayPal flow as the skins shop above — a skill id
+like `ghost` sits in the same `snake_entitlements` row shape as a skin id like `golden`, so no schema
+change was needed to add this whole second product line. Same `.env` variables turn both shops on
+together.
+
+**Single-player is a free trial for all four** — since that copy is a static file with no server to
+verify a real payment, every skill is simply unlocked and free to equip and use there against bots.
+It's a genuine no-strings way to try every skill before deciding whether to buy it for multiplayer.
+
+### 3. Ad slot (both versions)
 
 A clearly-labeled placeholder ad box (`#adSlot`) sits under the start-screen hint in both the
 single-player and multiplayer clients, `display:none` by default. To turn it on:
@@ -177,9 +205,10 @@ Left off until you have a real ID — an empty ad box looks broken to players.
   with **M**
 - Persistent high score and best-length tracking; new-best celebration on death
 - Mobile support (touch steer, two-finger boost), name saved in localStorage
-- 12 free skins in both versions, plus a free custom color picker (any hue) and 5 paid skins with
-  distinct visual effects and small perks in multiplayer (see
-  Monetization below)
+- 12 free skins in both versions, plus a free two-hue custom color picker and 5 paid skins with
+  distinct visual effects and small perks in multiplayer (see Monetization below)
+- Special Skills: 4 active abilities (Ghost Mode, Turbo Burst, Magnet Pulse, Jam Signal) triggered
+  live with **E** — free to try in single-player, real purchase to unlock in multiplayer
 
 The multiplayer version adds an authoritative Node server, client-side interpolation for smooth
 movement, per-player area-of-interest streaming, and a live human-player count on the leaderboard.

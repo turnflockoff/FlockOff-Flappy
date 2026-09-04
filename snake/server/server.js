@@ -47,6 +47,27 @@ const PREMIUM_BY_INDEX = new Map(PREMIUM_SKINS.map(s => [s.index, s]));
 const PREMIUM_BY_ID = new Map(PREMIUM_SKINS.map(s => [s.id, s]));
 const TOTAL_SKINS = 18; // valid skin indices are 0..17 (0-11 free, 12-15 premium, 16 custom-free, 17 premium)
 
+// ---------- Special Skills — active, purchasable abilities (not passive skin perks) ----------
+// A player equips at most one owned ability before a match and triggers it live with a
+// keypress/tap. Everything is server-authoritative: charges, cooldowns and effects all live
+// here, never trusted from the client. Entitlements reuse the same Supabase tables as skins
+// (snake_skin_orders / snake_entitlements) — the columns just hold an opaque item id, so an
+// ability id like 'ghost' lives there exactly like a skin id like 'golden' does, no schema
+// change needed. Single-player is a free trial for all of these (no server to fake-pay there).
+const ABILITIES = [
+  { id: 'ghost',  name: 'Ghost Mode',   price: 2.99, charges: 2, cooldown: 8,  durationTicks: 50,
+    desc: '2.5s pass through other snakes’ bodies unharmed (head-on still lethal by size)' },
+  { id: 'turbo',  name: 'Turbo Burst',  price: 1.99, charges: 3, cooldown: 6,  durationTicks: 20,
+    desc: '1s of free speed — no length burned, unlike boost' },
+  { id: 'magnet', name: 'Magnet Pulse', price: 2.49, charges: 2, cooldown: 10, durationTicks: 0,
+    desc: 'Instantly pulls in all nearby food in one burst' },
+  { id: 'jam',    name: 'Jam Signal',   price: 3.49, charges: 1, cooldown: 0,  durationTicks: 80,
+    desc: '4s: nearby bots lose track of you and just wander' },
+];
+const ABILITY_BY_ID = new Map(ABILITIES.map(a => [a.id, a]));
+const MAGNET_RADIUS = 260;
+const JAM_RADIUS = 500;
+
 
 // ---------- Payment / DB config (all optional — shop disables itself if unset) ----------
 const PAYPAL_CLIENT_ID = process.env.PAYPAL_CLIENT_ID || '';
@@ -138,7 +159,7 @@ async function paypalToken() {
   paypalTokenCache = { token: data.access_token, exp: Date.now() + (data.expires_in - 60) * 1000 };
   return data.access_token;
 }
-async function paypalCreateOrder(skin) {
+async function paypalCreateOrder(item) {
   const token = await paypalToken();
   const res = await fetch(PAYPAL_API + '/v2/checkout/orders', {
     method: 'POST',
@@ -146,8 +167,8 @@ async function paypalCreateOrder(skin) {
     body: JSON.stringify({
       intent: 'CAPTURE',
       purchase_units: [{
-        description: `SNAKE! SNAKE! — ${skin.name} skin`,
-        amount: { currency_code: 'USD', value: skin.price.toFixed(2) },
+        description: `SNAKE! SNAKE! — ${item.name}`,
+        amount: { currency_code: 'USD', value: item.price.toFixed(2) },
       }],
     }),
   });
@@ -202,8 +223,37 @@ class Snake {
     this.skin = skin;
     this.isBot = !!isBot;
     this.premium = PREMIUM_BY_INDEX.get(skin) || null;
-    this.customHue = null;   // set by caller when skin === CUSTOM_SKIN_INDEX
+    this.customHue = null; this.customHue2 = null;   // set by caller when skin === CUSTOM_SKIN_INDEX
+    this.ability = null; this.abilityCharges = 0; this.abilityCooldownT = 0;
+    this.ghostT = 0; this.turboT = 0; this.jamT = 0;
     this.reset();
+  }
+  equipAbility(id) {
+    const a = ABILITY_BY_ID.get(id);
+    this.ability = a ? a.id : null;
+    this.abilityCharges = a ? a.charges : 0;
+    this.abilityCooldownT = 0;
+  }
+  useAbility() {
+    const a = ABILITY_BY_ID.get(this.ability);
+    if (!a || this.dead || this.abilityCharges <= 0 || this.abilityCooldownT > 0) return false;
+    this.abilityCharges--;
+    this.abilityCooldownT = a.cooldown * TICK_HZ;
+    if (a.id === 'ghost') this.ghostT = a.durationTicks;
+    else if (a.id === 'turbo') this.turboT = a.durationTicks;
+    else if (a.id === 'jam') this.jamT = a.durationTicks;
+    else if (a.id === 'magnet') {
+      const r2 = MAGNET_RADIUS * MAGNET_RADIUS;
+      for (let i = foods.length - 1; i >= 0; i--) {
+        const f = foods[i];
+        if (dist2(this.x, this.y, f.x, f.y) <= r2) {
+          this.len += f.val * 0.6;
+          if (this.target === f) this.target = null;
+          removeFoodAt(i);
+        }
+      }
+    }
+    return true;
   }
   reset() {
     const p = randomWorldPoint(400);
@@ -224,9 +274,13 @@ class Snake {
     this.wanderT = 0;
     this.boostT = 0;
     this.segs = [];
+    if (this.ability) this.abilityCharges = (ABILITY_BY_ID.get(this.ability) || { charges: 0 }).charges;
+    this.abilityCooldownT = 0;
+    this.ghostT = 0; this.turboT = 0; this.jamT = 0;
   }
   get radius() { return 5 + Math.min(14, Math.sqrt(this.len) * 0.9); }
   get speed() {
+    if (this.turboT > 0) return BOOST_SPEED * 1.3;
     if (!(this.boost && this.len > MIN_BOOST_LEN)) return BASE_SPEED;
     const mul = this.premium && this.premium.perk === 'boostSpeed' ? 1.08 : 1;
     return BOOST_SPEED * mul;
@@ -245,6 +299,10 @@ class Snake {
 
   update() {
     if (this.dead) return;
+    if (this.ghostT > 0) this.ghostT--;
+    if (this.turboT > 0) this.turboT--;
+    if (this.jamT > 0) this.jamT--;
+    if (this.abilityCooldownT > 0) this.abilityCooldownT--;
     const agility = TURN_RATE * (this.boost ? 0.8 : 1) * Math.max(0.55, 1 - this.len / 900);
     this.angle = angleLerp(this.angle, this.targetAngle, agility);
     const sp = this.speed;
@@ -339,6 +397,16 @@ function botThink(s) {
     return;
   }
 
+  // Jam Signal: a nearby jammer blinds this bot's threat/food awareness — it just wanders.
+  for (const j of snakes.values()) {
+    if (j.jamT > 0 && !j.dead && dist2(s.x, s.y, j.x, j.y) < JAM_RADIUS * JAM_RADIUS) {
+      s.wanderT--;
+      if (s.wanderT <= 0) { s.targetAngle = s.angle + rand(-0.5, 0.5); s.wanderT = 20 + rand(0, 20); }
+      s.target = null;
+      return;
+    }
+  }
+
   let threatAng = null, threatD2 = 170 * 170;
   for (const o of snakes.values()) {
     if (o === s || o.dead) continue;
@@ -403,7 +471,7 @@ function checkCollisions() {
           if (i === 0) {
             if (s.len <= o.len) { s.die(); o.kills++; }
             if (o.len <= s.len) { o.die(); s.kills++; }
-          } else { s.die(); o.kills++; }
+          } else if (!s.ghostT) { s.die(); o.kills++; } // Ghost Mode: pass through others' bodies unharmed
           break;
         }
       }
@@ -427,10 +495,11 @@ function buildSnapshotFor(me) {
     if (s.dead) continue;
     if (s !== me && dist2(cx, cy, s.x, s.y) > vr2 && dist2(cx, cy, s.segs.length ? s.segs[s.segs.length - 1].x : s.x, s.segs.length ? s.segs[s.segs.length - 1].y : s.y) > vr2) continue;
     outSnakes.push({
-      i: s.id, n: s.name, c: s.skin, h: s.customHue,
+      i: s.id, n: s.name, c: s.skin, h: s.customHue, h2: s.customHue2,
       x: Math.round(s.x), y: Math.round(s.y),
       a: +s.angle.toFixed(3), r: +s.radius.toFixed(1),
-      b: s.boost ? 1 : 0, p: netSegments(s.segs, 40)
+      b: s.boost ? 1 : 0, p: netSegments(s.segs, 40),
+      g: s.ghostT > 0 ? 1 : 0, tb: s.turboT > 0 ? 1 : 0, jm: s.jamT > 0 ? 1 : 0
     });
   }
   const outFood = [];
@@ -439,12 +508,13 @@ function buildSnapshotFor(me) {
     if (dist2(cx, cy, f.x, f.y) > fr2) continue;
     outFood.push(f.id, Math.round(f.x), Math.round(f.y), +f.r.toFixed(1), f.hue);
   }
-  let ms = 0, mk = 0, mr = 0;
+  let ms = 0, mk = 0, mr = 0, ab = null;
   if (me) {
     ms = me.score; mk = me.kills; mr = 1;
     for (const s of snakes.values()) if (!s.dead && s.score > me.score) mr++;
+    if (me.ability) ab = { id: me.ability, charges: me.abilityCharges, cd: Math.ceil(me.abilityCooldownT / TICK_HZ) };
   }
-  return { t: 's', me: me ? me.id : 0, ms, mk, mr, sn: outSnakes, fd: outFood };
+  return { t: 's', me: me ? me.id : 0, ms, mk, mr, ab, sn: outSnakes, fd: outFood };
 }
 
 function leaderboard() {
@@ -527,6 +597,9 @@ const server = http.createServer(async (req, res) => {
   if (url === '/api/shop' && req.method === 'GET') {
     return sendJson(res, 200, { enabled: SHOP_ENABLED, skins: PREMIUM_SKINS.map(s => ({ id: s.id, index: s.index, name: s.name, price: s.price, desc: s.desc, effect: s.effect })) });
   }
+  if (url === '/api/abilities' && req.method === 'GET') {
+    return sendJson(res, 200, { enabled: SHOP_ENABLED, abilities: ABILITIES.map(a => ({ id: a.id, name: a.name, price: a.price, desc: a.desc, charges: a.charges, cooldown: a.cooldown })) });
+  }
   if (url === '/api/shop/owned' && req.method === 'GET') {
     const ownerId = new URL(req.url, 'http://x').searchParams.get('ownerId') || '';
     if (!SHOP_ENABLED || !ownerId) return sendJson(res, 200, { owned: [] });
@@ -540,9 +613,10 @@ const server = http.createServer(async (req, res) => {
     if (!SHOP_ENABLED) return sendJson(res, 503, { error: 'shop not configured' });
     try {
       const body = await readJsonBody(req, 2048);
-      const skin = PREMIUM_BY_ID.get(String(body.skinId || ''));
-      if (!skin) return sendJson(res, 400, { error: 'unknown skin' });
-      const order = await paypalCreateOrder(skin);
+      const itemId = String(body.itemId || body.skinId || '');
+      const item = PREMIUM_BY_ID.get(itemId) || ABILITY_BY_ID.get(itemId);
+      if (!item) return sendJson(res, 400, { error: 'unknown item' });
+      const order = await paypalCreateOrder(item);
       return sendJson(res, 200, { id: order.id });
     } catch (e) { console.error('[shop] create-order error', e.message); return sendJson(res, 500, { error: 'create-order failed' }); }
   }
@@ -550,9 +624,10 @@ const server = http.createServer(async (req, res) => {
     if (!SHOP_ENABLED) return sendJson(res, 503, { error: 'shop not configured' });
     try {
       const body = await readJsonBody(req, 2048);
-      const { orderId, ownerId, skinId } = body;
-      const skin = PREMIUM_BY_ID.get(String(skinId || ''));
-      if (!orderId || !ownerId || !skin) return sendJson(res, 400, { error: 'missing fields' });
+      const { orderId, ownerId } = body;
+      const itemId = String(body.itemId || body.skinId || '');
+      const item = PREMIUM_BY_ID.get(itemId) || ABILITY_BY_ID.get(itemId);
+      if (!orderId || !ownerId || !item) return sendJson(res, 400, { error: 'missing fields' });
 
       const capture = await paypalCaptureOrder(orderId);
       const status = capture.status;
@@ -562,18 +637,18 @@ const server = http.createServer(async (req, res) => {
       const currency = cap ? cap.amount.currency_code : '';
       const payerEmail = capture.payer && capture.payer.email_address;
 
-      const ok = status === 'COMPLETED' && currency === 'USD' && Math.abs(paidAmount - skin.price) < 0.005;
+      const ok = status === 'COMPLETED' && currency === 'USD' && Math.abs(paidAmount - item.price) < 0.005;
 
       await recordOrder({
-        owner_id: ownerId, paypal_order_id: orderId, skin_id: skin.id,
-        amount: paidAmount || skin.price, currency: currency || 'USD',
+        owner_id: ownerId, paypal_order_id: orderId, skin_id: item.id,
+        amount: paidAmount || item.price, currency: currency || 'USD',
         payer_email: payerEmail || null, status: ok ? 'completed' : 'failed',
       });
 
       if (!ok) return sendJson(res, 402, { error: 'payment not verified' });
 
-      await grantEntitlement(ownerId, skin.id);
-      return sendJson(res, 200, { ok: true, skinId: skin.id, skinIndex: skin.index });
+      await grantEntitlement(ownerId, item.id);
+      return sendJson(res, 200, { ok: true, itemId: item.id, skinIndex: item.index != null ? item.index : undefined });
     } catch (e) { console.error('[shop] capture-order error', e.message); return sendJson(res, 500, { error: 'capture failed' }); }
   }
 
@@ -595,32 +670,43 @@ wss.on('connection', (ws) => {
   ws.on('message', async (buf) => {
     let msg; try { msg = JSON.parse(buf); } catch (e) { return; }
     if (msg.t === 'join' || msg.t === 'respawn') {
+      const ownerId = String(msg.ownerId || '').slice(0, 64);
       let skinIndex = ((msg.skin | 0) % TOTAL_SKINS + TOTAL_SKINS) % TOTAL_SKINS;
       let premiumDenied = false;
-      let customHue = null;
+      let customHue = null, customHue2 = null;
       if (skinIndex === CUSTOM_SKIN_INDEX) {
         customHue = Math.max(0, Math.min(359, (msg.hue | 0) || 0));
+        customHue2 = Math.max(0, Math.min(359, (msg.hue2 | 0) || 0));
       } else {
         const premium = PREMIUM_BY_INDEX.get(skinIndex);
         if (premium) {
-          const ownerId = String(msg.ownerId || '').slice(0, 64);
           const entitled = ownerId && await hasEntitlement(ownerId, premium.id);
           if (!entitled) { skinIndex = 0; premiumDenied = true; }
         }
       }
+      let abilityId = null, abilityDenied = false;
+      const reqAbility = ABILITY_BY_ID.get(String(msg.ability || ''));
+      if (reqAbility) {
+        const entitled = ownerId && await hasEntitlement(ownerId, reqAbility.id);
+        if (entitled) abilityId = reqAbility.id; else abilityDenied = true;
+      }
       if (snakeId && snakes.has(snakeId)) snakes.delete(snakeId);
       const s = new Snake(sanitizeName(msg.name), skinIndex, false);
-      if (customHue !== null) s.customHue = customHue;
+      if (customHue !== null) { s.customHue = customHue; s.customHue2 = customHue2; }
+      if (abilityId) s.equipAbility(abilityId);
       snakeId = s.id;
       snakes.set(s.id, s);
       clients.set(s.id, ws);
-      send(ws, { t: 'welcome', id: s.id, world: WORLD_R, skin: skinIndex, premiumDenied });
+      send(ws, { t: 'welcome', id: s.id, world: WORLD_R, skin: skinIndex, premiumDenied, abilityDenied });
     } else if (msg.t === 'in') {
       const s = snakes.get(snakeId);
       if (s && !s.dead) {
         if (typeof msg.a === 'number') s.targetAngle = msg.a;
         s.boost = !!msg.b;
       }
+    } else if (msg.t === 'skill') {
+      const s = snakes.get(snakeId);
+      if (s && !s.dead) s.useAbility();
     }
   });
   ws.on('close', () => {
