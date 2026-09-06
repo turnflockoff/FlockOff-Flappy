@@ -1,0 +1,20 @@
+# Deploy SNAKE! SNAKE! Multiplayer to Render (https://render.com) — free tier.
+# This game lives in the repo's /snake subfolder, so Render must use it as the root.
+#
+# Easiest (no blueprint): Render dashboard → New → Web Service → pick this repo →
+#   set "Root Directory" = snake, Build = npm install, Start = npm start.
+#
+# Blueprint option: copy this file to the REPO ROOT as render.yaml, then
+#   Render → New → Blueprint → pick this repo. (rootDir below points it at /snake.)
+services:
+  - type: web
+    name: snake-snake-multiplayer
+    runtime: node
+    plan: free
+    rootDir: snake
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
