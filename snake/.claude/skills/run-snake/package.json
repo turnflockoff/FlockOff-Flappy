@@ -1,0 +1,8 @@
+{
+  "name": "run-snake-driver",
+  "private": true,
+  "description": "Playwright dependency for the run-snake skill's driver.mjs. Deliberately isolated here (not in snake/package.json) so it never ships to a real deploy of the game server.",
+  "dependencies": {
+    "playwright-core": "^1.48.0"
+  }
+}
