@@ -71,3 +71,11 @@ src/
 public/    PWA manifest, service worker, generated icons
 scripts/   icon generator (zero-dependency PNG encoder)
 ```
+
+
+## Engineering portfolio case study
+
+- [V-E0 scooter electronics research — reviewer-friendly case study](portfolio/V-E0-ESP32-Scooter-Research.md)
+- [Website-ready HTML page](portfolio/v-e0-esp32-scooter-research.html)
+
+These files document an independent research project using the neutral codename V-E0. The page distinguishes original photo evidence from conceptual engineering illustrations and does not claim a completed retrofit.
