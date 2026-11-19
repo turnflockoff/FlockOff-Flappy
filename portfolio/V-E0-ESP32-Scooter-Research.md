@@ -70,7 +70,7 @@ Any dimensions shown in a render are placeholders unless independently measured 
 The detailed research record and image inventory are maintained in the companion repository:
 
 - [Technical research repository](https://github.com/turnflockoff/Iot-oev-rideshare-reverse-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta)
-- [Proof-of-work log](https://github.com/turnflockoff/Iot-oev-rideshare-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta/blob/main/docs/PROOF_OF_WORK.md)
+- [Proof-of-work log](https://github.com/turnflockoff/Iot-oev-rideshare-reverse-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta/blob/main/docs/PROOF_OF_WORK.md)
 - [Image register](https://github.com/turnflockoff/Iot-oev-rideshare-reverse-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta/blob/main/evidence/IMAGE_REGISTER.md)
 
 The current GitHub image register records the 52-image collection; the original binary images are not yet committed to that repository. The collection ZIP is maintained separately for upload.
