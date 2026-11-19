@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>V-E0 Scooter Electronics Research | TurnFlockOff</title>
+<meta name="description" content="Independent hardware research and conceptual ESP32 dashboard design for a shared-ride scooter/e-bike electronics assembly.">
+<style>
+:root{color-scheme:dark;--bg:#0b0b0d;--panel:#151519;--text:#f2f2f4;--muted:#aaaab3;--red:#f04444;--line:#303038}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:16px/1.65 system-ui,-apple-system,Segoe UI,sans-serif}
+main{max-width:900px;margin:auto;padding:48px 22px 80px}h1,h2{line-height:1.2}h1{font-size:clamp(2rem,6vw,3.4rem);margin:.3em 0}h2{margin-top:2.2em;font-size:1.45rem}p,li{color:#dedee3}.eyebrow{color:var(--red);font-weight:700;letter-spacing:.12em;text-transform:uppercase}.meta{color:var(--muted)}.notice{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--red);padding:16px 18px;border-radius:8px;margin:24px 0}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:24px 0}.stat{background:var(--panel);border:1px solid var(--line);padding:16px;border-radius:8px}.stat strong{display:block;font-size:1.8rem;color:var(--red)}a{color:#ff7777}code{color:#ffb2b2}footer{margin-top:3em;padding-top:1.5em;border-top:1px solid var(--line);color:var(--muted)}
+</style>
+</head>
+<body><main>
+<p class="eyebrow">Independent engineering research</p>
+<h1>V-E0 Shared-Ride Scooter Electronics</h1>
+<p class="meta">ESP32 dashboard research · TurnFlockOff · Project date: </p>
+<div class="notice"><strong>Project status:</strong> Research and conceptual design only. “V-E0” is a neutral project codename. No affiliation, sponsorship, endorsement, or authorization by any manufacturer or operator is claimed. A codename does not itself eliminate trademark or other legal risk.</div>
+<p>This project documents a visual investigation of a shared-ride scooter/e-bike display and control electronics assembly, then explores whether selected dashboard and communications functions could eventually be handled by an independent ESP32-based board.</p>
+<div class="grid">
+<div class="stat"><strong>43</strong>original hardware/document photographs</div>
+<div class="stat"><strong>9</strong>engineering-artwork images</div>
+<div class="stat"><strong>52</strong>unique images inventoried</div>
+</div>
+<h2>Hypothesis / reasoning</h2>
+<p>The original display/control assembly may combine user display, low-voltage power regulation, external I/O, serial communications, and cellular/GPS-related hardware. If connector pin functions, electrical levels, protocols, battery limits, and mechanical dimensions can be measured, an independent ESP32-S3 dashboard/interface may be feasible. This remains a hypothesis.</p>
+<h2>What I did</h2>
+<ul><li>Organized 43 original hardware/document photographs and 9 engineering-artwork images.</li><li>Reviewed the enclosure, multi-board electronics assembly, connector panel, PCB surfaces, and battery label.</li><li>Recorded nine visible connector labels: USB DEBUG, BRAKE, THROTTLE, SPEAKER, LED, DATA, 5V OUTPUT, 12V OUTPUT, and FRONT LIGHT.</li><li>Transcribed visible PCB markings where legible and documented uncertainties.</li><li>Outlined an ESP32-S3 dashboard/interface architecture and created conceptual PCB/enclosure illustrations.</li></ul>
+<h2>How I did it</h2>
+<p>Visual inspection of supplied photographs, transcription of visible labels, evidence organization, subsystem mapping, and conceptual engineering illustration. Candidate functions were grouped into power, display, communications, sensor/input, and lighting/audio interfaces.</p>
+<h2>What happened / observed result</h2>
+<p>The evidence supports a preliminary research direction: a multi-board display/control assembly is visible, the connector panel carries nine functional labels, and PCB silkscreen suggests multiple power and signal domains. A battery label photograph visibly reads 46.8 V, 15 Ah, and 702 Wh, while smaller configuration text remains unclear.</p>
+<p><strong>Not demonstrated:</strong> verified connector pinout, measured voltage table, decoded protocol, completed KiCad schematic, manufacturing-ready PCB, firmware integration, fabricated replacement board, successful bench test, or powered vehicle test.</p>
+<h2>Concept-art and CAD disclaimer</h2>
+<div class="notice">All generated wiring diagrams, exploded views, 3D renders, PCB illustrations, component placements, connector geometries, and depicted dimensions are <strong>conceptual illustrations only</strong>. They are not measured CAD models, verified mechanical assemblies, validated electrical schematics, manufacturing-ready PCB files, Gerbers, or fabrication instructions. Rendered dimensions are placeholders unless independently measured.</div>
+<h2>What I would change next</h2>
+<ol><li>Capture square-on board photos with a scale.</li><li>Confirm battery chemistry, series count, BMS limits, and maximum charge voltage.</li><li>Identify the exact motor controller and permitted voltage range.</li><li>Measure board, enclosure, mounting, and connector geometry.</li><li>Characterize connector pins with safe, isolated, current-limited test equipment.</li><li>Capture communications passively before attempting an interface.</li><li>Create a measured KiCad schematic and PCB layout.</li><li>Build a low-voltage bench prototype without throttle, brake, or traction control.</li></ol>
+<h2>Evidence and technical record</h2>
+<p><a href="https://github.com/turnflockoff/Iot-oev-rideshare-reverse-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta">Open the detailed technical repository</a> · <a href="https://github.com/turnflockoff/Iot-oev-rideshare-reverse-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta/blob/main/docs/PROOF_OF_WORK.md">Proof-of-work log</a> · <a href="https://github.com/turnflockoff/Iot-oev-rideshare-reverse-recycled-cosmo-scooter-e-bike-ESP32-custom-schematic-proof-work-draft-beta/blob/main/evidence/IMAGE_REGISTER.md">Image register</a></p>
+<footer>Prepared as a conservative technical portfolio record. Dates remain blank when not established. No manufacturer affiliation is implied.</footer>
+</main></body></html>
