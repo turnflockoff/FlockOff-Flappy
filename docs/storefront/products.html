@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Shop &amp; Support — TURNFLOCKOFF.COM</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c232d; --ink:#e8edf2; --muted:#9aa7b4;
+    --accent:#ff3b3b; --accent2:#26d07c; --line:#2a333f; --gold:#ffd166;
+    --shadow:0 10px 30px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace;line-height:1.5}
+  a{color:inherit}
+  .donatebar{position:sticky;top:0;z-index:50;display:flex;align-items:center;
+    justify-content:space-between;gap:12px;padding:10px 16px;
+    background:linear-gradient(90deg,#12161c,#171d25);border-bottom:1px solid var(--line);
+    backdrop-filter:blur(6px)}
+  .brand{font-weight:800;letter-spacing:1px;font-size:14px}
+  .brand span{color:var(--accent)}
+  .donate{display:inline-flex;align-items:center;gap:8px;background:var(--accent2);
+    color:#04130b;text-decoration:none;font-weight:800;padding:9px 16px;border-radius:8px;
+    border:1px solid #1aa863;box-shadow:0 4px 0 #109154;white-space:nowrap}
+  .donate:active{transform:translateY(2px);box-shadow:0 2px 0 #109154}
+  .hero{max-width:1000px;margin:0 auto;padding:38px 20px 8px;text-align:center}
+  .hero h1{font-size:clamp(24px,5vw,40px);margin:0 0 8px;letter-spacing:1px}
+  .hero h1 b{color:var(--accent)}
+  .hero p{color:var(--muted);max-width:620px;margin:6px auto 0}
+  .pill{display:inline-block;margin-top:14px;padding:6px 12px;border:1px dashed var(--line);
+    border-radius:999px;color:var(--gold);font-size:12px}
+  .wrap{max-width:1000px;margin:0 auto;padding:24px 20px 60px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+  .thumb{aspect-ratio:1/1;display:grid;place-items:center;background:
+    radial-gradient(120% 120% at 30% 20%,#232c37,#12161c);border-bottom:1px solid var(--line);
+    position:relative}
+  .thumb .emoji{font-size:64px;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+  .thumb .tag{position:absolute;top:10px;left:10px;font-size:10px;letter-spacing:1px;
+    background:#0c0f14cc;border:1px solid var(--line);padding:4px 8px;border-radius:6px;color:var(--muted)}
+  .card h3{margin:14px 14px 4px;font-size:16px}
+  .card .price{margin:0 14px;color:var(--accent2);font-weight:800;font-size:18px}
+  .card .desc{margin:8px 14px 0;color:var(--muted);font-size:12.5px;flex:1}
+  .card .fine{margin:10px 14px 0;color:#7f8b98;font-size:10.5px;font-style:italic}
+  .card .cta{margin:14px;padding:11px;border:1px solid #333f4d;border-radius:9px;
+    background:#212a34;color:var(--ink);font-weight:800;text-align:center;cursor:pointer;
+    letter-spacing:.5px}
+  .card .cta:hover{background:#28323d}
+  footer{max-width:1000px;margin:0 auto;padding:24px 20px 50px;color:#7f8b98;font-size:12px;
+    border-top:1px solid var(--line)}
+  footer b{color:var(--muted)}
+  .note{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;margin:0 0 22px;color:var(--muted);font-size:12.5px}
+  .note b{color:var(--gold)}
+</style>
+</head>
+<body>
+
+  <div class="donatebar">
+    <div class="brand">TURN<span>FLOCK</span>OFF<span>.COM</span></div>
+    <a class="donate" href="#donate" aria-label="Donate to the cause">❤ DONATE</a>
+  </div>
+
+  <header class="hero">
+    <h1>Gear up. <b>Flock off.</b></h1>
+    <p>Every order funds the fight against warrantless mass surveillance in your town.
+       Wear it loud — none of it touches your license plate.</p>
+    <div class="pill">100% street-legal merch · proceeds fund ALPR advocacy</div>
+  </header>
+
+  <main class="wrap">
+
+    <div class="note">
+      <b>Why no “plate leaf”?</b> Covering any character on your plate — even to dodge a camera —
+      violates <b>CA Vehicle Code §5201(f)</b> and equivalents nationwide, disclaimer or not.
+      We don’t sell it. The plate frame below makes the point and stays 100% legal:
+      every character, the state name, and the sticker stay fully visible.
+    </div>
+
+    <div class="grid">
+
+      <div class="card">
+        <div class="thumb"><div class="tag">NEW</div><div class="emoji">🥸</div></div>
+        <h3>Incognito Dove Disguise Glasses</h3>
+        <p class="price">$9.99</p>
+        <p class="desc">The classic Groucho gag — bushy brows, big fake nose, &#39;stache. Our paranoid dove&#39;s official disguise, now on your face. A joke about a serious problem: you shouldn&#39;t need a disguise to run errands.</p>
+        <p class="fine">Novelty item. Costume use only — not PPE, not a privacy device.</p>
+        <div class="cta">ADD TO CART</div>
+      </div>
+
+      <div class="card">
+        <div class="thumb"><div class="tag">PRIVACY</div><div class="emoji">🕶️</div></div>
+        <h3>IR-Reflective Privacy Glasses</h3>
+        <p class="price">$47.99</p>
+        <p class="desc">Lenses and frames engineered to reflect and reduce near-infrared, the band many IR-based face-scan and night cameras rely on.</p>
+        <p class="fine">Reduces IR-based capture under some conditions. Not a guarantee against all facial recognition, does nothing against bright-daylight 2D systems, and has no effect on license-plate readers. Results vary by device.</p>
+        <div class="cta">ADD TO CART</div>
+      </div>
+
+      <div class="card">
+        <div class="thumb"><div class="tag">STREET-LEGAL</div><div class="emoji">🪧</div></div>
+        <h3>“FLOCK OFF” License Plate Frame</h3>
+        <p class="price">$12.00</p>
+        <p class="desc">Say it every red light. Slim frame designed to sit clear of the characters, state name, and registration sticker — legal in all 50 states.</p>
+        <p class="fine">Install so no part of the plate text is covered, per your state&#39;s rules.</p>
+        <div class="cta">ADD TO CART</div>
+      </div>
+
+      <div class="card">
+        <div class="thumb"><div class="tag">CLASSIC</div><div class="emoji">🐦‍⬛</div></div>
+        <h3>FLOCK OFF Sticker Pack (5)</h3>
+        <p class="price">$5.00</p>
+        <p class="desc">Weatherproof vinyl for laptops, water bottles, guitar cases, city-council parking meters (kidding). Spread the word.</p>
+        <p class="fine">Not for use on license plates or plate frames.</p>
+        <div class="cta">ADD TO CART</div>
+      </div>
+    </div>
+
+    <div id="donate" class="note" style="margin-top:26px;text-align:center">
+      Prefer to give directly? <a href="#" style="color:var(--accent2);font-weight:800">
+      Make a one-time or monthly donation →</a> Your support keeps the cameras
+      accountable and the merch flying.
+    </div>
+
+  </main>
+
+  <footer>
+    <p><b>TURNFLOCKOFF.COM</b> — fighting warrantless mass surveillance, one town at a time.</p>
+    <p>Nothing here obstructs, covers, alters, or defeats a license plate or any legally
+       required marking. Products are sold for lawful use only; comply with your local laws.
+       “Add to cart” buttons are placeholders — wire them to your checkout provider.</p>
+  </footer>
+
+</body>
+</html>
