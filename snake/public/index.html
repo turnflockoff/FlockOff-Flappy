@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SNAKE! SNAKE! Multiplayer — game by Turnflockoff.com</title>
+<title>LIMO LOOP Multiplayer — game by Turnflockoff.com</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0e1a; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
@@ -184,7 +184,7 @@
 <div id="leaderboard" style="display:none"><h3>Leaderboard <span id="lbPlayers"></span></h3><div id="lbRows"></div></div>
 
 <div id="startScreen" class="overlay">
-  <div class="logo">SNAKE! SNAKE!</div>
+  <div class="logo">LIMO LOOP</div>
   <div class="sub">Multiplayer</div>
   <div class="tagline">Eat. Grow. Don't get flocked off.</div>
   <div class="byline">a game by <a href="https://Turnflockoff.com" target="_blank" rel="noopener">Turnflockoff.com</a></div>
@@ -202,6 +202,7 @@
   </div>
   <button id="playBtn" class="btn">PLAY</button>
   <div id="conn">Connecting…</div>
+    <a id="offlineLink" href="offline.html" style="display:none;margin-top:8px;color:#4ade80;font-weight:700;text-decoration:underline">Server asleep? Play LIMO LOOP vs bots instead →</a>
   <div class="hint">
     <b>Mouse / touch</b> to steer &nbsp;·&nbsp; <b>Click / Space / double-tap-hold</b> to boost<br>
     Real players share the arena &nbsp;·&nbsp; Crash into a snake and you're food
@@ -213,7 +214,7 @@
   <div id="deathTitle">FLOCKED OFF!</div>
   <div id="deathStats"></div>
   <button id="respawnBtn" class="btn">PLAY AGAIN</button>
-  <div class="byline">SNAKE! SNAKE! Multiplayer — a game by Turnflockoff.com</div>
+  <div class="byline">LIMO LOOP Multiplayer — a game by Turnflockoff.com</div>
 </div>
 
 <div id="shopModal">
@@ -605,6 +606,7 @@ resize();
 let ws = null, myId = 0, WORLD_R = 3400, connected = false, playing = false;
 const buf = [];          // snapshot buffer for interpolation
 let latestFood = [];     // [id,x,y,r,hue, ...]
+let latestCams = [], latestBooms = [];
 let hud = { len: 0, kills: 0, rank: 0 };
 let lbData = { rows: [], players: 0 };
 let prevFoodCount = -1;
@@ -629,9 +631,10 @@ function connect() {
     else if (m.t === 's') onSnapshot(m);
     else if (m.t === 'lb') { lbData = { rows: m.rows, players: m.players }; }
     else if (m.t === 'dead') onDeath(m);
+    else if (m.t === 'cam') { try { sfx.skill('magnet'); } catch (e) {} flashBanner('📸 FLOCK CAM DESTROYED!  +' + m.bonus + ' length'); }
   };
 }
-function setConn(txt, cls) { const el = document.getElementById('conn'); el.textContent = txt; el.className = cls; }
+function setConn(txt, cls) { const el = document.getElementById('conn'); el.textContent = txt; el.className = cls; const ol = document.getElementById('offlineLink'); if (ol) ol.style.display = (cls === 'err') ? 'inline-block' : 'none'; }
 
 let lastAbilityCharges = null;
 function onSnapshot(m) {
@@ -640,6 +643,7 @@ function onSnapshot(m) {
   buf.push({ time: performance.now(), me: m.me, snakes });
   if (buf.length > 5) buf.shift();
   latestFood = m.fd;
+  latestCams = m.cm || []; latestBooms = m.bm || [];
   hud = { len: m.ms, kills: m.mk, rank: m.mr, ab: m.ab || null };
   // eat cue: food count dropped near us
   const fc = m.fd.length / 5;
@@ -760,6 +764,88 @@ function interpState() {
 let camX = 0, camY = 0, zoom = 1;
 function worldToScreen(x, y) { return [(x - camX) * zoom + W / 2, (y - camY) * zoom + H / 2]; }
 
+
+// ---------- LIMO LOOP: stretch-limo rendering, Flock cams, banners ----------
+function flashBanner(text) {
+  let el = document.getElementById('limoBanner');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'limoBanner';
+    el.style.cssText = 'position:fixed;top:18%;left:50%;transform:translateX(-50%);z-index:50;padding:10px 20px;border-radius:12px;background:rgba(15,23,42,.92);border:2px solid #f87171;color:#fff;font:800 20px "Segoe UI",sans-serif;text-align:center;pointer-events:none;opacity:0;transition:opacity .25s;box-shadow:0 0 24px rgba(248,113,113,.5)';
+    document.body.appendChild(el);
+  }
+  el.textContent = text; el.style.opacity = '1';
+  clearTimeout(flashBanner._h); flashBanner._h = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+function limoRR(x, y, w, h, rad) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, rad); else ctx.rect(x, y, w, h);
+}
+function drawLimo(pts, r, c1, c2, ang, boosting, effect, frm) {
+  if (pts.length < 2) return;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const trace = () => {
+    ctx.beginPath(); ctx.moveTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+    for (let i = pts.length - 2; i >= 0; i--) ctx.lineTo(pts[i][0], pts[i][1]);
+  };
+  const body = effect === 'rainbow' ? `hsl(${(frm * 3) % 360},85%,58%)` : c1;
+  trace(); ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = r * 2.15;
+  if (boosting) { ctx.shadowColor = c1; ctx.shadowBlur = 18; }
+  ctx.stroke(); ctx.shadowBlur = 0;
+  trace(); ctx.strokeStyle = body; ctx.lineWidth = r * 1.9; ctx.stroke();            // paint
+  trace(); ctx.strokeStyle = c2; ctx.lineWidth = r * 1.2; ctx.stroke();             // body trim colour
+  trace(); ctx.strokeStyle = 'rgba(12,22,42,0.9)'; ctx.lineWidth = r * 0.95;        // tinted windows
+  ctx.setLineDash([r * 1.5, r * 0.7]); ctx.stroke(); ctx.setLineDash([]);
+  trace(); ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = r * 0.3; ctx.stroke(); // roof glint
+  if (effect === 'shimmer') { trace(); ctx.strokeStyle = `rgba(255,255,255,${0.08 + 0.22 * Math.max(0, Math.sin(frm * 0.08))})`; ctx.lineWidth = r * 1.9; ctx.stroke(); }
+  if (effect === 'scale') { trace(); ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = r * 1.9; ctx.setLineDash([2, r * 0.9]); ctx.stroke(); ctx.setLineDash([]); }
+  // wheels, spaced along the length
+  let acc = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (acc < r * 2.6) continue;
+    acc = 0;
+    const dx = pts[i + 1][0] - pts[i - 1][0], dy = pts[i + 1][1] - pts[i - 1][1], L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L;
+    for (const sd of [-1, 1]) {
+      ctx.beginPath(); ctx.arc(pts[i][0] + nx * r * 0.98 * sd, pts[i][1] + ny * r * 0.98 * sd, r * 0.27, 0, 6.2832);
+      ctx.fillStyle = '#0a0a0a'; ctx.fill();
+    }
+  }
+  // head: the hood, windshield and headlights
+  const hx = pts[0][0], hy = pts[0][1];
+  ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
+  limoRR(-r * 0.2, -r * 0.98, r * 1.75, r * 1.96, r * 0.6);
+  ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.65)'; ctx.lineWidth = Math.max(1, r * 0.12); ctx.stroke();
+  limoRR(-r * 0.5, -r * 0.64, r * 0.62, r * 1.28, r * 0.22); ctx.fillStyle = 'rgba(150,205,255,0.92)'; ctx.fill();
+  ctx.shadowColor = '#fde047'; ctx.shadowBlur = 10; ctx.fillStyle = '#fde047';
+  for (const sd of [-1, 1]) { ctx.beginPath(); ctx.arc(r * 1.4, sd * r * 0.6, r * 0.2, 0, 6.2832); ctx.fill(); }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+function drawFlockCam(sx, sy, z, frm, id) {
+  const s = Math.max(0.55, z);
+  ctx.save(); ctx.translate(sx, sy);
+  ctx.beginPath(); ctx.arc(0, 0, 30 * s, 0, 6.2832);
+  ctx.strokeStyle = 'rgba(248,113,113,0.28)'; ctx.lineWidth = 2; ctx.setLineDash([4, 7]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(0, 0, 11 * s, 0, 6.2832); ctx.fillStyle = '#2a3042'; ctx.fill();
+  ctx.rotate(Math.sin(frm * 0.02 + id) * 0.9);
+  ctx.fillStyle = '#1d4ed8'; ctx.fillRect(-12 * s, -22 * s, 24 * s, 10 * s);        // solar panel
+  ctx.fillStyle = '#e5e7eb'; limoRR(-9 * s, -7 * s, 18 * s, 14 * s, 3 * s); ctx.fill();  // camera body
+  ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 8 * s, 5 * s, 0, 6.2832); ctx.fill(); // lens
+  const on = (frm + id * 13) % 60 < 30;
+  ctx.fillStyle = on ? '#ef4444' : '#7f1d1d'; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = on ? 12 : 0;
+  ctx.beginPath(); ctx.arc(6 * s, -3 * s, 2.2 * s, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.restore();
+  ctx.font = `bold ${Math.max(8, 10 * s)}px sans-serif`; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(248,113,113,0.85)'; ctx.fillText('FLOCK', sx, sy + 40 * s);
+}
+function drawBoom(sx, sy, z, age) {
+  const k = Math.min(1, age); const R = (20 + 150 * k) * z;
+  ctx.beginPath(); ctx.arc(sx, sy, R, 0, 6.2832);
+  ctx.strokeStyle = `rgba(251,146,60,${1 - k})`; ctx.lineWidth = Math.max(2, 10 * (1 - k) * z); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx, sy, R * 0.55, 0, 6.2832); ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - k)})`; ctx.fill();
+}
+
 // ---------- Render ----------
 let frame = 0;
 function render() {
@@ -801,6 +887,14 @@ function render() {
     ctx.fillStyle = `hsl(${hue},80%,65%)`; ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 9; ctx.fill();
   }
   ctx.shadowBlur = 0;
+
+  // Flock cams + explosions (server-authoritative)
+  for (let i = 0; i < latestCams.length; i += 3) {
+    const [cx, cy] = worldToScreen(latestCams[i + 1], latestCams[i + 2]);
+    if (cx < -60 || cx > W + 60 || cy < -60 || cy > H + 60) continue;
+    drawFlockCam(cx, cy, zoom, frame, latestCams[i]);
+  }
+  for (let i = 0; i < latestBooms.length; i += 3) { const [bx2, by2] = worldToScreen(latestBooms[i], latestBooms[i + 1]); drawBoom(bx2, by2, zoom, latestBooms[i + 2] / 16); }
 
   // snakes (me last, on top)
   if (state) {
@@ -872,43 +966,10 @@ function drawSnake(s, isMe) {
     ctx.lineWidth = Math.max(1.5, r * 0.12); ctx.stroke();
   }
 
-  if (s.g) ctx.globalAlpha = 0.5; // Ghost Mode: translucent body (head/eyes stay full-opacity below)
-  for (let i = s.p.length - 2; i >= 0; i -= 2) {
-    const [x, y] = worldToScreen(s.p[i], s.p[i + 1]);
-    const segI = i / 2;
-    let fillC1 = c1, fillC2 = c2;
-    if (effect === 'rainbow') {
-      // Rainbow Serpent: hue continuously cycles along the body and over time
-      const hue = (frame * 3 + segI * 24) % 360;
-      fillC1 = `hsl(${hue},85%,60%)`; fillC2 = `hsl(${hue},85%,40%)`;
-    }
-    const bandPeriod = effect === 'scale' ? 2 : 4;
-    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = ((segI / bandPeriod) | 0) % 2 === 0 ? fillC1 : fillC2;
-    if (s.b) { ctx.shadowColor = fillC1; ctx.shadowBlur = 16; }
-    ctx.fill(); ctx.shadowBlur = 0;
-
-    // Golden Cobra: a bright highlight sweeps down the body over time
-    let hiAlpha = 0.09;
-    if (effect === 'shimmer') hiAlpha = 0.09 + 0.28 * Math.max(0, Math.sin(frame * 0.08 - segI * 0.4));
-    ctx.beginPath(); ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.55, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${hiAlpha})`; ctx.fill();
-
-    // Iron Scale: a fine metallic outline on every segment
-    if (effect === 'scale') {
-      ctx.beginPath(); ctx.arc(x, y, r * 0.92, 0, Math.PI * 2);
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)'; ctx.lineWidth = Math.max(1, r * 0.08); ctx.stroke();
-    }
-  }
+  if (s.g) ctx.globalAlpha = 0.5; // Ghost Mode: translucent limo
+  const lp = []; for (let i = 0; i < s.p.length; i += 2) lp.push(worldToScreen(s.p[i], s.p[i + 1]));
+  drawLimo(lp, r, c1, c2, s.a, !!s.b, effect, frame);
   ctx.globalAlpha = 1;
-
-  // eyes
-  const ea = s.a, eo = r * 0.48, er = Math.max(2.2, r * 0.34);
-  for (const side of [-1, 1]) {
-    const ex = hx + Math.cos(ea + side * 0.9) * eo * 1.35, ey = hy + Math.sin(ea + side * 0.9) * eo * 1.35;
-    ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.beginPath(); ctx.arc(ex + Math.cos(ea) * er * 0.4, ey + Math.sin(ea) * er * 0.4, er * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
-  }
 
   ctx.font = `${Math.max(11, 13 * zoom)}px 'Segoe UI', sans-serif`; ctx.textAlign = 'center';
   ctx.fillStyle = isMe ? '#4ade80' : 'rgba(255,255,255,0.75)';

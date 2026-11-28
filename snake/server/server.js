@@ -1,5 +1,5 @@
 'use strict';
-// SNAKE! SNAKE! — authoritative multiplayer game server (by Turnflockoff.com)
+// LIMO LOOP — authoritative multiplayer game server (by Turnflockoff.com)
 // Holds the shared world, simulates at a fixed tick, and streams area-of-interest
 // snapshots to each connected client over WebSocket. Also serves the client,
 // a small REST API for the premium-skins shop, and verifies PayPal payments
@@ -167,7 +167,7 @@ async function paypalCreateOrder(item) {
     body: JSON.stringify({
       intent: 'CAPTURE',
       purchase_units: [{
-        description: `SNAKE! SNAKE! — ${item.name}`,
+        description: `LIMO LOOP — ${item.name}`,
         amount: { currency_code: 'USD', value: item.price.toFixed(2) },
       }],
     }),
@@ -367,6 +367,44 @@ class Snake {
 const snakes = new Map();       // id -> Snake
 const clients = new Map();      // Snake id -> ws   (human players only)
 
+// ---------- Flock cams: loop your limo around one to blow it up ----------
+const CAM_COUNT = 16, CAM_RESPAWN_TICKS = TICK_HZ * 12;
+const cams = []; const booms = []; let camSeq = 1;
+function spawnCam() { const p = randomWorldPoint(350); return { id: camSeq++, x: p.x, y: p.y, alive: true, respawn: 0 }; }
+for (let i = 0; i < CAM_COUNT; i++) cams.push(spawnCam());
+function pointInPoly(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function explodeCam(cam, s) {
+  cam.alive = false; cam.respawn = CAM_RESPAWN_TICKS;
+  booms.push({ x: cam.x, y: cam.y, tick });
+  for (let k = 0; k < 26; k++) addFood(cam.x + rand(-70, 70), cam.y + rand(-70, 70), rand(1.2, 2.2));
+  s.len += 6; s.camPops = (s.camPops || 0) + 1;
+  const ws = clients.get(s.id);
+  if (ws) send(ws, { t: 'cam', bonus: 6, total: s.camPops });
+}
+function checkCamLoops() {
+  for (const s of snakes.values()) {
+    if (s.dead) continue;
+    if (s.loopCool > 0) { s.loopCool--; continue; }
+    const segs = s.segs; if (!segs || segs.length < 16) continue;
+    const lim = (s.radius * 1.6) * (s.radius * 1.6), start = 12 + ((s.radius * 1.6 / 10) | 0);
+    let j = -1;
+    for (let i = start; i < segs.length; i++) if (dist2(s.x, s.y, segs[i].x, segs[i].y) < lim) { j = i; break; }
+    if (j < 0) continue;
+    const poly = segs.slice(0, j + 1); let hit = false;
+    for (const c of cams) { if (c.alive && pointInPoly(c.x, c.y, poly)) { explodeCam(c, s); hit = true; } }
+    if (hit) s.loopCool = 10;
+  }
+  for (const c of cams) if (!c.alive && --c.respawn <= 0) { const p = randomWorldPoint(350); c.x = p.x; c.y = p.y; c.alive = true; }
+  while (booms.length && tick - booms[0].tick > 40) booms.shift();
+}
+
 function botCount() { let n = 0; for (const s of snakes.values()) if (s.isBot) n++; return n; }
 function humanCount() { let n = 0; for (const s of snakes.values()) if (!s.isBot) n++; return n; }
 
@@ -514,7 +552,10 @@ function buildSnapshotFor(me) {
     for (const s of snakes.values()) if (!s.dead && s.score > me.score) mr++;
     if (me.ability) ab = { id: me.ability, charges: me.abilityCharges, cd: Math.ceil(me.abilityCooldownT / TICK_HZ) };
   }
-  return { t: 's', me: me ? me.id : 0, ms, mk, mr, ab, sn: outSnakes, fd: outFood };
+  const cm = [], bm = [];
+  for (const c of cams) if (c.alive && dist2(cx, cy, c.x, c.y) <= fr2) cm.push(c.id, Math.round(c.x), Math.round(c.y));
+  for (const b of booms) { const age = tick - b.tick; if (age <= 16 && dist2(cx, cy, b.x, b.y) <= fr2) bm.push(Math.round(b.x), Math.round(b.y), age); }
+  return { t: 's', me: me ? me.id : 0, ms, mk, mr, ab, sn: outSnakes, fd: outFood, cm, bm };
 }
 
 function leaderboard() {
@@ -530,6 +571,7 @@ function gameLoop() {
   for (const s of snakes.values()) { if (!s.dead) { s.update(); } }
   for (const s of snakes.values()) { if (!s.dead) s.computeSegs(); }
   checkCollisions();
+  checkCamLoops();
 
   const { all, rows } = leaderboard();
   for (const [id, ws] of clients) {
@@ -720,5 +762,5 @@ spawnFoodField();
 topUpBots();
 setInterval(gameLoop, 1000 / TICK_HZ);
 server.listen(PORT, () => {
-  console.log(`SNAKE! SNAKE! multiplayer server listening on :${PORT} (world radius ${WORLD_R}, shop ${SHOP_ENABLED ? 'ON' : 'OFF'})`);
+  console.log(`LIMO LOOP multiplayer server listening on :${PORT} (world radius ${WORLD_R}, shop ${SHOP_ENABLED ? 'ON' : 'OFF'})`);
 });

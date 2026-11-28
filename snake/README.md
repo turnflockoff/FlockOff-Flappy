@@ -1,9 +1,25 @@
-# SNAKE! SNAKE!
+# LIMO LOOP
 
 *a game by Turnflockoff.com*
 
-A slither.io-style snake game. Eat glowing pellets, grow, boost, and cut off other
-snakes to turn them into food. Don't get flocked off.
+A slither.io-style game where you drive a **stretch limo** that gets longer the more you eat.
+Eat glowing pellets, boost, cut off other limos to turn them into food, and **loop your limo around a
+Flock Safety camera to blow it up**. Don't get flocked off.
+
+### New: Flock cams 📸
+- Red-blinking Flock cameras sit around the arena (16 in multiplayer, 14 in single-player).
+- **Close a loop with your limo around one** (cross your own body with the camera inside the circle) and it
+  explodes: a burst of ~26 pellets drops, you get **+6 length**, and a banner pops up. Cams respawn ~12 s later.
+- Bots can pop cams too, so the arena stays lively. Cams are never lethal, so it stays fun, not hard.
+- Multiplayer: cams, explosions and loop detection are all **server-authoritative** (`checkCamLoops` in `server.js`).
+
+### Status / what's verified
+- Multiplayer server tested with two simultaneous WebSocket players sharing one world (leaderboard reported
+  `players: 2`) alongside AI bots.
+- Headless-browser run of both clients: zero JS errors, limos render, boost works.
+- Headless driver looped a limo around a cam on the live server and received the explosion event + bonus.
+- If the multiplayer server is asleep/unreachable, the page shows **"Play vs bots instead"** which loads
+  `public/offline.html` (the full single-player game).
 
 > **This is a self-contained game in the `/snake` subfolder.** It is completely separate
 > from the FLOCKOFF FLAPPY project at the repo root — different files, different runtime,
@@ -49,7 +65,7 @@ payment, so premium skins only exist in the multiplayer version, which has a ser
 ```html
 <iframe src="https://YOUR-SNAKE-URL/"
         style="width:100%; height:80vh; border:0; border-radius:12px;"
-        allow="fullscreen" title="SNAKE! SNAKE! — game by Turnflockoff.com"></iframe>
+        allow="fullscreen" title="LIMO LOOP — game by Turnflockoff.com"></iframe>
 ```
 
 ---
@@ -219,6 +235,7 @@ movement, per-player area-of-interest streaming, and a live human-player count o
 snake/
   index.html         single-player game (standalone, offline)
   public/index.html  multiplayer client (served by the server)
+  public/offline.html  copy of single-player, linked as the "play vs bots" fallback
   server/server.js   authoritative multiplayer game server + shop API
   package.json        server dependency (ws) + start script
   render.yaml         Render deploy (rootDir: snake)

@@ -1,4 +1,4 @@
-# Deploy SNAKE! SNAKE! Multiplayer to Render (https://render.com) — free tier.
+# Deploy LIMO LOOP Multiplayer to Render (https://render.com) — free tier.
 # This game lives in the repo's /snake subfolder, so Render must use it as the root.
 #
 # Easiest (no blueprint): Render dashboard → New → Web Service → pick this repo →
@@ -8,7 +8,7 @@
 #   Render → New → Blueprint → pick this repo. (rootDir below points it at /snake.)
 services:
   - type: web
-    name: snake-snake-multiplayer
+    name: limo-loop-multiplayer
     runtime: node
     plan: free
     rootDir: snake

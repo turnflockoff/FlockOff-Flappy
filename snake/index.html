@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>SNAKE! SNAKE! — game by Turnflockoff.com</title>
+<title>LIMO LOOP — game by Turnflockoff.com</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #0b0e1a; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
@@ -122,7 +122,7 @@
 <div id="skillBtn" style="display:none" title="Activate special skill (E)">⚡<span id="skillCharges"></span></div>
 
 <div id="startScreen" class="overlay">
-  <div class="logo">SNAKE! SNAKE!</div>
+  <div class="logo">LIMO LOOP</div>
   <div class="tagline">Eat. Grow. Don't get flocked off.</div>
   <div class="byline">a game by <a href="https://Turnflockoff.com" target="_blank" rel="noopener">Turnflockoff.com</a></div>
   <div class="best" id="startBest" style="display:none">Best length: <b>0</b></div>
@@ -146,7 +146,7 @@
   <div id="deathTitle">FLOCKED OFF!</div>
   <div id="deathStats"></div>
   <button id="respawnBtn" class="btn">PLAY AGAIN</button>
-  <div class="byline">SNAKE! SNAKE! — a game by Turnflockoff.com</div>
+  <div class="byline">LIMO LOOP — a game by Turnflockoff.com</div>
 </div>
 
 <script>
@@ -555,6 +555,7 @@ function startGame() {
   const name = (nameEl.value.trim() || 'FlockOff').slice(0, 16);
   try { localStorage.setItem('snakeName', name); } catch (e) {}
   spawnFoodField();
+  initCams();
   player = new Snake(name, currentSkinColors(), true);
   player.equipAbility(selectedAbility);
   snakes = [player];
@@ -748,6 +749,7 @@ function update() {
     s.update();
   }
   checkCollisions();
+  checkCamLoops();
 
   // respawn dead bots, top up food
   for (let i = 0; i < snakes.length; i++) {
@@ -787,6 +789,126 @@ function onPlayerDeath() {
 
 // ---------- Render ----------
 function worldToScreen(x, y) { return [(x - camX) * zoom + W / 2, (y - camY) * zoom + H / 2]; }
+
+
+// ---------- LIMO LOOP: stretch-limo rendering, Flock cams, banners ----------
+function flashBanner(text) {
+  let el = document.getElementById('limoBanner');
+  if (!el) {
+    el = document.createElement('div'); el.id = 'limoBanner';
+    el.style.cssText = 'position:fixed;top:18%;left:50%;transform:translateX(-50%);z-index:50;padding:10px 20px;border-radius:12px;background:rgba(15,23,42,.92);border:2px solid #f87171;color:#fff;font:800 20px "Segoe UI",sans-serif;text-align:center;pointer-events:none;opacity:0;transition:opacity .25s;box-shadow:0 0 24px rgba(248,113,113,.5)';
+    document.body.appendChild(el);
+  }
+  el.textContent = text; el.style.opacity = '1';
+  clearTimeout(flashBanner._h); flashBanner._h = setTimeout(() => { el.style.opacity = '0'; }, 1800);
+}
+function limoRR(x, y, w, h, rad) {
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, rad); else ctx.rect(x, y, w, h);
+}
+function drawLimo(pts, r, c1, c2, ang, boosting, effect, frm) {
+  if (pts.length < 2) return;
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  const trace = () => {
+    ctx.beginPath(); ctx.moveTo(pts[pts.length - 1][0], pts[pts.length - 1][1]);
+    for (let i = pts.length - 2; i >= 0; i--) ctx.lineTo(pts[i][0], pts[i][1]);
+  };
+  const body = effect === 'rainbow' ? `hsl(${(frm * 3) % 360},85%,58%)` : c1;
+  trace(); ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = r * 2.15;
+  if (boosting) { ctx.shadowColor = c1; ctx.shadowBlur = 18; }
+  ctx.stroke(); ctx.shadowBlur = 0;
+  trace(); ctx.strokeStyle = body; ctx.lineWidth = r * 1.9; ctx.stroke();            // paint
+  trace(); ctx.strokeStyle = c2; ctx.lineWidth = r * 1.2; ctx.stroke();             // body trim colour
+  trace(); ctx.strokeStyle = 'rgba(12,22,42,0.9)'; ctx.lineWidth = r * 0.95;        // tinted windows
+  ctx.setLineDash([r * 1.5, r * 0.7]); ctx.stroke(); ctx.setLineDash([]);
+  trace(); ctx.strokeStyle = 'rgba(255,255,255,0.10)'; ctx.lineWidth = r * 0.3; ctx.stroke(); // roof glint
+  if (effect === 'shimmer') { trace(); ctx.strokeStyle = `rgba(255,255,255,${0.08 + 0.22 * Math.max(0, Math.sin(frm * 0.08))})`; ctx.lineWidth = r * 1.9; ctx.stroke(); }
+  if (effect === 'scale') { trace(); ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = r * 1.9; ctx.setLineDash([2, r * 0.9]); ctx.stroke(); ctx.setLineDash([]); }
+  // wheels, spaced along the length
+  let acc = 0;
+  for (let i = 1; i < pts.length - 1; i++) {
+    acc += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]);
+    if (acc < r * 2.6) continue;
+    acc = 0;
+    const dx = pts[i + 1][0] - pts[i - 1][0], dy = pts[i + 1][1] - pts[i - 1][1], L = Math.hypot(dx, dy) || 1;
+    const nx = -dy / L, ny = dx / L;
+    for (const sd of [-1, 1]) {
+      ctx.beginPath(); ctx.arc(pts[i][0] + nx * r * 0.98 * sd, pts[i][1] + ny * r * 0.98 * sd, r * 0.27, 0, 6.2832);
+      ctx.fillStyle = '#0a0a0a'; ctx.fill();
+    }
+  }
+  // head: the hood, windshield and headlights
+  const hx = pts[0][0], hy = pts[0][1];
+  ctx.save(); ctx.translate(hx, hy); ctx.rotate(ang);
+  limoRR(-r * 0.2, -r * 0.98, r * 1.75, r * 1.96, r * 0.6);
+  ctx.fillStyle = body; ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.65)'; ctx.lineWidth = Math.max(1, r * 0.12); ctx.stroke();
+  limoRR(-r * 0.5, -r * 0.64, r * 0.62, r * 1.28, r * 0.22); ctx.fillStyle = 'rgba(150,205,255,0.92)'; ctx.fill();
+  ctx.shadowColor = '#fde047'; ctx.shadowBlur = 10; ctx.fillStyle = '#fde047';
+  for (const sd of [-1, 1]) { ctx.beginPath(); ctx.arc(r * 1.4, sd * r * 0.6, r * 0.2, 0, 6.2832); ctx.fill(); }
+  ctx.shadowBlur = 0;
+  ctx.restore();
+}
+function drawFlockCam(sx, sy, z, frm, id) {
+  const s = Math.max(0.55, z);
+  ctx.save(); ctx.translate(sx, sy);
+  ctx.beginPath(); ctx.arc(0, 0, 30 * s, 0, 6.2832);
+  ctx.strokeStyle = 'rgba(248,113,113,0.28)'; ctx.lineWidth = 2; ctx.setLineDash([4, 7]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(0, 0, 11 * s, 0, 6.2832); ctx.fillStyle = '#2a3042'; ctx.fill();
+  ctx.rotate(Math.sin(frm * 0.02 + id) * 0.9);
+  ctx.fillStyle = '#1d4ed8'; ctx.fillRect(-12 * s, -22 * s, 24 * s, 10 * s);        // solar panel
+  ctx.fillStyle = '#e5e7eb'; limoRR(-9 * s, -7 * s, 18 * s, 14 * s, 3 * s); ctx.fill();  // camera body
+  ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(0, 8 * s, 5 * s, 0, 6.2832); ctx.fill(); // lens
+  const on = (frm + id * 13) % 60 < 30;
+  ctx.fillStyle = on ? '#ef4444' : '#7f1d1d'; ctx.shadowColor = '#ef4444'; ctx.shadowBlur = on ? 12 : 0;
+  ctx.beginPath(); ctx.arc(6 * s, -3 * s, 2.2 * s, 0, 6.2832); ctx.fill(); ctx.shadowBlur = 0;
+  ctx.restore();
+  ctx.font = `bold ${Math.max(8, 10 * s)}px sans-serif`; ctx.textAlign = 'center';
+  ctx.fillStyle = 'rgba(248,113,113,0.85)'; ctx.fillText('FLOCK', sx, sy + 40 * s);
+}
+function drawBoom(sx, sy, z, age) {
+  const k = Math.min(1, age); const R = (20 + 150 * k) * z;
+  ctx.beginPath(); ctx.arc(sx, sy, R, 0, 6.2832);
+  ctx.strokeStyle = `rgba(251,146,60,${1 - k})`; ctx.lineWidth = Math.max(2, 10 * (1 - k) * z); ctx.stroke();
+  ctx.beginPath(); ctx.arc(sx, sy, R * 0.55, 0, 6.2832); ctx.fillStyle = `rgba(255,255,255,${0.8 * (1 - k)})`; ctx.fill();
+}
+
+// ---- Flock cams (single-player): loop your limo around one to blow it up ----
+const CAM_COUNT = 14, CAM_RESPAWN = 720;
+let cams = [], booms = [];
+function spawnCam() { const p = randomWorldPoint(350); return { id: Math.random() * 1000 | 0, x: p.x, y: p.y, alive: true, respawn: 0 }; }
+function initCams() { cams = []; booms = []; for (let i = 0; i < CAM_COUNT; i++) cams.push(spawnCam()); }
+function pointInPoly(px, py, poly) {
+  let inside = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const xi = poly[i].x, yi = poly[i].y, xj = poly[j].x, yj = poly[j].y;
+    if ((yi > py) !== (yj > py) && px < (xj - xi) * (py - yi) / (yj - yi) + xi) inside = !inside;
+  }
+  return inside;
+}
+function explodeCam(cam, s) {
+  cam.alive = false; cam.respawn = CAM_RESPAWN;
+  booms.push({ x: cam.x, y: cam.y, t: frame });
+  for (let k = 0; k < 26; k++) addFood(cam.x + rand(-70, 70), cam.y + rand(-70, 70), rand(1.2, 2.2), s.skin[k % 2]);
+  s.len += 6;
+  if (s.isPlayer) { sfx.skill('magnet'); flashBanner('📸 FLOCK CAM DESTROYED!  +6 length'); }
+}
+function checkCamLoops() {
+  for (const s of snakes) {
+    if (s.dead) continue;
+    if (s.loopCool > 0) { s.loopCool--; continue; }
+    if (!s.isPlayer && frame % 4 !== 0) continue;
+    const segs = s.segments(); if (segs.length < 16) continue;
+    const lim = (s.radius * 1.6) * (s.radius * 1.6), start = 12 + ((s.radius * 1.6 / 10) | 0);
+    let j = -1;
+    for (let i = start; i < segs.length; i++) if (dist2(s.x, s.y, segs[i].x, segs[i].y) < lim) { j = i; break; }
+    if (j < 0) continue;
+    const poly = segs.slice(0, j + 1); let hit = false;
+    for (const c of cams) { if (c.alive && pointInPoly(c.x, c.y, poly)) { explodeCam(c, s); hit = true; } }
+    if (hit) s.loopCool = 30;
+  }
+  for (const c of cams) if (!c.alive && --c.respawn <= 0) { const p = randomWorldPoint(350); c.x = p.x; c.y = p.y; c.alive = true; }
+  while (booms.length && frame - booms[0].t > 40) booms.shift();
+}
 
 function render() {
   ctx.fillStyle = '#0b0e1a';
@@ -831,6 +953,15 @@ function render() {
   }
   ctx.shadowBlur = 0;
 
+  // Flock cams + explosions
+  for (const c of cams) {
+    if (!c.alive) continue;
+    const [cx, cy] = worldToScreen(c.x, c.y);
+    if (cx < -60 || cx > W + 60 || cy < -60 || cy > H + 60) continue;
+    drawFlockCam(cx, cy, zoom, frame, c.id);
+  }
+  for (const b of booms) { const [bx2, by2] = worldToScreen(b.x, b.y); drawBoom(bx2, by2, zoom, (frame - b.t) / 40); }
+
   // snakes (draw player last so it's on top)
   const drawOrder = snakes.filter(s => !s.dead).sort((a, b) => (a.isPlayer ? 1 : 0) - (b.isPlayer ? 1 : 0));
   for (const s of drawOrder) drawSnake(s);
@@ -864,33 +995,11 @@ function drawSnake(s) {
     }
   }
 
-  // body: back to front
-  if (s.ghostT > 0) ctx.globalAlpha = 0.5; // Ghost Mode: translucent body
-  for (let i = segs.length - 1; i >= 0; i--) {
-    const [x, y] = worldToScreen(segs[i].x, segs[i].y);
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fillStyle = (i / 4 | 0) % 2 === 0 ? c1 : c2;
-    if (s.boost && s.len > MIN_BOOST_LEN) { ctx.shadowColor = c1; ctx.shadowBlur = 16; }
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // subtle top highlight
-    ctx.beginPath();
-    ctx.arc(x - r * 0.25, y - r * 0.3, r * 0.55, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(255,255,255,0.09)';
-    ctx.fill();
-  }
+  // LIMO: the whole snake is one stretched car
+  if (s.ghostT > 0) ctx.globalAlpha = 0.5;
+  const lp = []; for (let i = 0; i < segs.length; i++) lp.push(worldToScreen(segs[i].x, segs[i].y));
+  drawLimo(lp, r, c1, c2, s.angle, s.boost && s.len > MIN_BOOST_LEN, null, frame);
   ctx.globalAlpha = 1;
-
-  // eyes
-  const ea = s.angle;
-  const eo = r * 0.48, er = Math.max(2.2, r * 0.34);
-  for (const side of [-1, 1]) {
-    const ex = hx + Math.cos(ea + side * 0.9) * eo * 1.35;
-    const ey = hy + Math.sin(ea + side * 0.9) * eo * 1.35;
-    ctx.beginPath(); ctx.arc(ex, ey, er, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill();
-    ctx.beginPath(); ctx.arc(ex + Math.cos(ea) * er * 0.4, ey + Math.sin(ea) * er * 0.4, er * 0.55, 0, Math.PI * 2); ctx.fillStyle = '#111'; ctx.fill();
-  }
 
   // name tag
   ctx.font = `${Math.max(11, 13 * zoom)}px 'Segoe UI', sans-serif`;

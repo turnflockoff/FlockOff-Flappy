@@ -1,7 +1,7 @@
 {
-  "name": "snake-snake-multiplayer",
+  "name": "limo-loop-multiplayer",
   "version": "1.0.0",
-  "description": "SNAKE! SNAKE! — real-time multiplayer slither-style game by Turnflockoff.com",
+  "description": "LIMO LOOP — real-time multiplayer slither-style game by Turnflockoff.com",
   "main": "server/server.js",
   "type": "commonjs",
   "scripts": {
